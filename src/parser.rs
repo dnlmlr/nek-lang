@@ -3,7 +3,7 @@ use std::iter::Peekable;
 use crate::lexer::Token;
 
 /// Types for binary operators
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum BinOpType {
     /// Addition
     Add,
@@ -12,7 +12,7 @@ pub enum BinOpType {
     Mul,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Ast {
     /// Integer literal (64-bit)
     I64(i64),
