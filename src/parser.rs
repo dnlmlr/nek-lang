@@ -2,7 +2,8 @@ use std::iter::Peekable;
 
 use crate::lexer::Token;
 
-#[derive(Debug)]
+/// Types for binary operators
+#[derive(Debug, PartialEq, Eq)]
 pub enum BinOpType {
     /// Addition
     Add,
@@ -11,7 +12,7 @@ pub enum BinOpType {
     Mul,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Ast {
     /// Integer literal (64-bit)
     I64(i64),
@@ -39,13 +40,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         self.parse_expr_precedence(lhs, 0)
     }
 
+    /// Parse binary expressions with a precedence equal to or higher than min_prec
     fn parse_expr_precedence(&mut self, mut lhs: Ast, min_prec: u8) -> Ast {
         while let Some(binop) = &self.peek().try_to_binop() {
             if !(binop.precedence() >= min_prec) {
                 break;
             }
 
-            // The while condition already verified that this is some while peeking, so unwrap is 
+            // The while condition already verified that this is some while peeking, so unwrap is
             // valid
             let binop = self.next().try_to_binop().unwrap();
 
@@ -98,5 +100,40 @@ impl BinOpType {
             BinOpType::Add => 0,
             BinOpType::Mul => 1,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{parse, Ast, BinOpType};
+    use crate::lexer::Token;
+
+    #[test]
+    fn test_parser() {
+        // Expression: 1 + 2 * 3 + 4
+        // With precedence: (1 + (2 * 3)) + 4
+        let tokens = [
+            Token::I64(1),
+            Token::Add,
+            Token::I64(2),
+            Token::Mul,
+            Token::I64(3),
+            Token::Add,
+            Token::I64(4),
+        ];
+
+        let expected = Ast::BinOp(
+            BinOpType::Add,
+            Ast::BinOp(
+                BinOpType::Add,
+                Ast::I64(1).into(),
+                Ast::BinOp(BinOpType::Mul, Ast::I64(2).into(), Ast::I64(3).into()).into(),
+            )
+            .into(),
+            Ast::I64(4).into(),
+        );
+
+        let actual = parse(tokens);
+        assert_eq!(expected, actual);
     }
 }

@@ -111,6 +111,6 @@ mod tests {
         ];
 
         let actual = lex(code);
-        assert_eq!(&expected, &actual);
+        assert_eq!(expected, actual);
     }
 }
