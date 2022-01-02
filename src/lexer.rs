@@ -1,6 +1,6 @@
 use std::{iter::Peekable, str::Chars};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Token {
     I64(i64),
 
@@ -64,4 +64,30 @@ impl<'a> Lexer<'a> {
 pub fn lex(code: &str) -> Vec<Token> {
     let mut lexer = Lexer::new(code);
     lexer.lex()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Token, lex};
+
+    #[test]
+    fn test_lexer() {
+        let code = "33   +5*2  + 4456467*2334+3";
+        let expected = vec![
+            Token::I64(33),
+            Token::Add,
+            Token::I64(5),
+            Token::Mul,
+            Token::I64(2),
+            Token::Add,
+            Token::I64(4456467),
+            Token::Mul,
+            Token::I64(2334),
+            Token::Add,
+            Token::I64(3),
+        ];
+
+        let actual = lex(code);
+        assert_eq!(&expected, &actual);
+    }
 }
