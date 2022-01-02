@@ -1,6 +1,6 @@
 use crate::parser::{Ast, BinOpType};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value {
     I64(i64),
 }
@@ -38,5 +38,34 @@ impl Interpreter {
             },
             // _ => panic!("Value types are not compatible"),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::parser::{Ast, BinOpType};
+    use super::{Interpreter, Value};
+
+    #[test]
+    fn test_interpreter_expr() {
+        // Expression: 1 + 2 * 3 + 4
+        // With precedence: (1 + (2 * 3)) + 4
+        let ast = Ast::BinOp(
+            BinOpType::Add,
+            Ast::BinOp(
+                BinOpType::Add,
+                Ast::I64(1).into(),
+                Ast::BinOp(BinOpType::Mul, Ast::I64(2).into(), Ast::I64(3).into()).into(),
+            )
+            .into(),
+            Ast::I64(4).into(),
+        );
+
+        let expected = Value::I64(11);
+
+        let mut interpreter = Interpreter::new();
+        let actual = interpreter.resolve_expr(ast);
+
+        assert_eq!(expected, actual);
     }
 }
