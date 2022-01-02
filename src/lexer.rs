@@ -1,12 +1,20 @@
 use std::{iter::Peekable, str::Chars};
 
+use crate::parser::BinOpType;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {
+    /// Integer literal (64-bit)
     I64(i64),
 
+    /// Plus (+)
     Add,
 
+    /// Asterisk (*)
     Mul,
+
+    /// End of file
+    EoF,
 }
 
 struct Lexer<'a> {
@@ -24,7 +32,10 @@ impl<'a> Lexer<'a> {
 
         while let Some(ch) = self.next() {
             match ch {
+                // Skip whitespace
                 ' ' => (),
+
+                // Lex numbers
                 '0'..='9' => {
                     let mut sval = String::from(ch);
 
@@ -40,13 +51,12 @@ impl<'a> Lexer<'a> {
 
                 '+' => tokens.push(Token::Add),
                 '*' => tokens.push(Token::Mul),
-                
+
                 //TODO: Don't panic, keep calm
                 _ => panic!("Lexer encountered unexpected char: '{}'", ch),
-
             }
         }
-        
+
         tokens
     }
 
@@ -55,20 +65,33 @@ impl<'a> Lexer<'a> {
         self.code.next()
     }
 
-    /// Shows next character
+    /// Get the next character without removing it
     fn peek(&mut self) -> Option<char> {
         self.code.peek().copied()
     }
 }
 
+/// Lex the provided code into a Token Buffer
+///
+/// TODO: Don't panic and implement error handling using Result
 pub fn lex(code: &str) -> Vec<Token> {
     let mut lexer = Lexer::new(code);
     lexer.lex()
 }
 
+impl Token {
+    pub fn try_to_binop(&self) -> Option<BinOpType> {
+        Some(match self {
+            Token::Add => BinOpType::Add,
+            Token::Mul => BinOpType::Mul,
+            _ => return None,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{Token, lex};
+    use super::{lex, Token};
 
     #[test]
     fn test_lexer() {
