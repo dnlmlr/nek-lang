@@ -8,8 +8,14 @@ pub enum BinOpType {
     /// Addition
     Add,
 
+    /// Subtraction
+    Sub,
+
     /// Multiplication
     Mul,
+
+    /// Divide
+    Div,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -19,6 +25,15 @@ pub enum Ast {
     /// Binary operation. Consists of type, left hand side and right hand side
     BinOp(BinOpType, Box<Ast>, Box<Ast>),
 }
+
+/*
+## Grammar
+### Expressions
+`expr_primary = LITERAL` \
+`expr_mul = expr_primary (("*" | "/") expr_primary)*` \
+`expr_add = expr_mul (("+" | "-") expr_mul)*` \
+`expr = expr_add` \
+*/
 
 struct Parser<T: Iterator<Item = Token>> {
     tokens: Peekable<T>,
@@ -40,9 +55,12 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         self.parse_expr_precedence(lhs, 0)
     }
 
+
+
     /// Parse binary expressions with a precedence equal to or higher than min_prec
     fn parse_expr_precedence(&mut self, mut lhs: Ast, min_prec: u8) -> Ast {
         while let Some(binop) = &self.peek().try_to_binop() {
+            // Stop if the next operator has a lower binding power
             if !(binop.precedence() >= min_prec) {
                 break;
             }
@@ -97,8 +115,8 @@ impl BinOpType {
     /// For example Multiplication is stronger than addition, so Mul has higher precedence than Add.
     fn precedence(&self) -> u8 {
         match self {
-            BinOpType::Add => 0,
-            BinOpType::Mul => 1,
+            BinOpType::Add | BinOpType::Sub => 0,
+            BinOpType::Mul | BinOpType::Div => 1,
         }
     }
 }

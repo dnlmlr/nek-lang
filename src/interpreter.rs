@@ -35,6 +35,8 @@ impl Interpreter {
             (Value::I64(lhs), Value::I64(rhs)) => match bo {
                 BinOpType::Add => Value::I64(lhs + rhs),
                 BinOpType::Mul => Value::I64(lhs * rhs),
+                BinOpType::Sub => Value::I64(lhs - rhs),
+                BinOpType::Div => Value::I64(lhs / rhs),
             },
             // _ => panic!("Value types are not compatible"),
         }

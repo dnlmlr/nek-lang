@@ -10,8 +10,14 @@ pub enum Token {
     /// Plus (+)
     Add,
 
+    /// Minus (-)
+    Sub,
+
     /// Asterisk (*)
     Mul,
+
+    /// Slash (/)
+    Div,
 
     /// End of file
     EoF,
@@ -60,7 +66,9 @@ impl<'a> Lexer<'a> {
                 }
 
                 '+' => tokens.push(Token::Add),
+                '-' => tokens.push(Token::Sub),
                 '*' => tokens.push(Token::Mul),
+                '/' => tokens.push(Token::Div),
 
                 //TODO: Don't panic, keep calm
                 _ => panic!("Lexer encountered unexpected char: '{}'", ch),
@@ -93,7 +101,9 @@ impl Token {
     pub fn try_to_binop(&self) -> Option<BinOpType> {
         Some(match self {
             Token::Add => BinOpType::Add,
+            Token::Sub => BinOpType::Sub,
             Token::Mul => BinOpType::Mul,
+            Token::Div => BinOpType::Div,
             _ => return None,
         })
     }
