@@ -40,9 +40,19 @@ impl<'a> Lexer<'a> {
                     let mut sval = String::from(ch);
 
                     // Do as long as a next char exists and it is a numeric char
-                    while let Some('0'..='9') = self.peek() {
+                    while let Some(ch) = self.peek() {
                         // The next char is verified to be Some, so unwrap is safe
-                        sval.push(self.next().unwrap());
+                        match ch {
+                            // Underscore is a separator, so remove it but don't add to number
+                            '_' => {
+                                self.next().unwrap();
+                            }
+                            '0'..='9' => {
+                                sval.push(self.next().unwrap());
+                            }
+                            // Next char is not a number, so stop and finish the number token
+                            _ => break
+                        }
                     }
 
                     // TODO: We only added numeric chars to the string, but the conversion could still fail
