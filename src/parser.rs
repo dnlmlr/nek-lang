@@ -16,6 +16,24 @@ pub enum BinOpType {
 
     /// Divide
     Div,
+
+    /// Modulo
+    Mod,
+
+    /// Bitwise OR (inclusive or)
+    BOr,
+
+    /// Bitwise And
+    BAnd,
+
+    /// Bitwise Xor (exclusive or)
+    BXor,
+
+    /// Shift Left
+    Shl,
+
+    /// Shift Right
+    Shr,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -54,8 +72,6 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let lhs = self.parse_primary();
         self.parse_expr_precedence(lhs, 0)
     }
-
-
 
     /// Parse binary expressions with a precedence equal to or higher than min_prec
     fn parse_expr_precedence(&mut self, mut lhs: Ast, min_prec: u8) -> Ast {
@@ -115,8 +131,12 @@ impl BinOpType {
     /// For example Multiplication is stronger than addition, so Mul has higher precedence than Add.
     fn precedence(&self) -> u8 {
         match self {
-            BinOpType::Add | BinOpType::Sub => 0,
-            BinOpType::Mul | BinOpType::Div => 1,
+            BinOpType::BOr => 0,
+            BinOpType::BXor => 1,
+            BinOpType::BAnd => 2,
+            BinOpType::Shl | BinOpType::Shr => 3,
+            BinOpType::Add | BinOpType::Sub => 4,
+            BinOpType::Mul | BinOpType::Div | BinOpType::Mod => 5,
         }
     }
 }
@@ -136,12 +156,12 @@ mod tests {
             Token::I64(2),
             Token::Mul,
             Token::I64(3),
-            Token::Add,
+            Token::Sub,
             Token::I64(4),
         ];
 
         let expected = Ast::BinOp(
-            BinOpType::Add,
+            BinOpType::Sub,
             Ast::BinOp(
                 BinOpType::Add,
                 Ast::I64(1).into(),

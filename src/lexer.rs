@@ -19,6 +19,24 @@ pub enum Token {
     /// Slash (/)
     Div,
 
+    /// Percent (%)
+    Mod,
+
+    /// Pipe (|)
+    BOr,
+
+    /// Ampersand (&)
+    BAnd,
+
+    /// Circumflex (^)
+    BXor,
+
+    /// Shift Left (<<)
+    Shl,
+
+    /// Shift Right (>>)
+    Shr,
+
     /// End of file
     EoF,
 }
@@ -57,7 +75,7 @@ impl<'a> Lexer<'a> {
                                 sval.push(self.next().unwrap());
                             }
                             // Next char is not a number, so stop and finish the number token
-                            _ => break
+                            _ => break,
                         }
                     }
 
@@ -65,10 +83,22 @@ impl<'a> Lexer<'a> {
                     tokens.push(Token::I64(sval.parse().unwrap()));
                 }
 
+                '>' if matches!(self.peek(), Some('>')) => {
+                    self.next();
+                    tokens.push(Token::Shr);
+                }
+                '<' if matches!(self.peek(), Some('<')) => {
+                    self.next();
+                    tokens.push(Token::Shl);
+                }
                 '+' => tokens.push(Token::Add),
                 '-' => tokens.push(Token::Sub),
                 '*' => tokens.push(Token::Mul),
                 '/' => tokens.push(Token::Div),
+                '%' => tokens.push(Token::Mod),
+                '|' => tokens.push(Token::BOr),
+                '&' => tokens.push(Token::BAnd),
+                '^' => tokens.push(Token::BXor),
 
                 //TODO: Don't panic, keep calm
                 _ => panic!("Lexer encountered unexpected char: '{}'", ch),
@@ -102,8 +132,17 @@ impl Token {
         Some(match self {
             Token::Add => BinOpType::Add,
             Token::Sub => BinOpType::Sub,
+
             Token::Mul => BinOpType::Mul,
             Token::Div => BinOpType::Div,
+            Token::Mod => BinOpType::Mod,
+
+            Token::BAnd => BinOpType::BAnd,
+            Token::BOr => BinOpType::BOr,
+            Token::BXor => BinOpType::BXor,
+
+            Token::Shl => BinOpType::Shl,
+            Token::Shr => BinOpType::Shr,
             _ => return None,
         })
     }
@@ -115,7 +154,7 @@ mod tests {
 
     #[test]
     fn test_lexer() {
-        let code = "33   +5*2  + 4456467*2334+3";
+        let code = "33   +5*2  + 4456467*2334+3 % - / << ^ | & >>";
         let expected = vec![
             Token::I64(33),
             Token::Add,
@@ -128,6 +167,14 @@ mod tests {
             Token::I64(2334),
             Token::Add,
             Token::I64(3),
+            Token::Mod,
+            Token::Sub,
+            Token::Div,
+            Token::Shl,
+            Token::BXor,
+            Token::BOr,
+            Token::BAnd,
+            Token::Shr,
         ];
 
         let actual = lex(code);

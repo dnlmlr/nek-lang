@@ -37,6 +37,12 @@ impl Interpreter {
                 BinOpType::Mul => Value::I64(lhs * rhs),
                 BinOpType::Sub => Value::I64(lhs - rhs),
                 BinOpType::Div => Value::I64(lhs / rhs),
+                BinOpType::Mod => Value::I64(lhs % rhs),
+                BinOpType::BOr => Value::I64(lhs | rhs),
+                BinOpType::BAnd => Value::I64(lhs & rhs),
+                BinOpType::BXor => Value::I64(lhs ^ rhs),
+                BinOpType::Shr => Value::I64(lhs >> rhs),
+                BinOpType::Shl => Value::I64(lhs << rhs),
             },
             // _ => panic!("Value types are not compatible"),
         }
@@ -45,8 +51,8 @@ impl Interpreter {
 
 #[cfg(test)]
 mod test {
-    use crate::parser::{Ast, BinOpType};
     use super::{Interpreter, Value};
+    use crate::parser::{Ast, BinOpType};
 
     #[test]
     fn test_interpreter_expr() {
