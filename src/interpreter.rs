@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::parser::{Ast, BinOpType, UnOpType};
+use crate::parser::{Expression, BinOpType, UnOpType, Ast, Statement};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value {
@@ -20,17 +20,23 @@ impl Interpreter {
     }
 
     pub fn run(&mut self, prog: Ast) {
-        let result = self.resolve_expr(prog);
+        for stmt in prog.prog {
+            match stmt {
+                Statement::Expr(expr) => {
+                    let result = self.resolve_expr(expr);
+                    println!("Result = {:?}", result);
+                }
+            }
 
-        println!("Result = {:?}", result);
+        }
     }
 
-    fn resolve_expr(&mut self, expr: Ast) -> Value {
+    fn resolve_expr(&mut self, expr: Expression) -> Value {
         match expr {
-            Ast::I64(val) => Value::I64(val),
-            Ast::BinOp(bo, lhs, rhs) => self.resolve_binop(bo, *lhs, *rhs),
-            Ast::UnOp(uo, operand) => self.resolve_unop(uo, *operand),
-            Ast::Var(name) => self.resolve_var(name),
+            Expression::I64(val) => Value::I64(val),
+            Expression::BinOp(bo, lhs, rhs) => self.resolve_binop(bo, *lhs, *rhs),
+            Expression::UnOp(uo, operand) => self.resolve_unop(uo, *operand),
+            Expression::Var(name) => self.resolve_var(name),
         }
     }
 
@@ -41,7 +47,7 @@ impl Interpreter {
         }
     }
 
-    fn resolve_unop(&mut self, uo: UnOpType, operand: Ast) -> Value {
+    fn resolve_unop(&mut self, uo: UnOpType, operand: Expression) -> Value {
         let operand = self.resolve_expr(operand);
 
         match (operand, uo) {
@@ -51,15 +57,15 @@ impl Interpreter {
         }
     }
 
-    fn resolve_binop(&mut self, bo: BinOpType, lhs: Ast, rhs: Ast) -> Value {
+    fn resolve_binop(&mut self, bo: BinOpType, lhs: Expression, rhs: Expression) -> Value {
         let rhs = self.resolve_expr(rhs);
 
         match (&bo, &lhs) {
-            (BinOpType::Declare, Ast::Var(name)) => {
+            (BinOpType::Declare, Expression::Var(name)) => {
                 self.vartable.insert(name.clone(), rhs.clone());
                 return rhs;
             }
-            (BinOpType::Assign, Ast::Var(name)) => {
+            (BinOpType::Assign, Expression::Var(name)) => {
                 match self.vartable.get_mut(name) {
                     Some(val) => *val = rhs.clone(),
                     None => panic!("Runtime Error: Trying to assign value to undeclared variable"),
@@ -100,21 +106,21 @@ impl Interpreter {
 #[cfg(test)]
 mod test {
     use super::{Interpreter, Value};
-    use crate::parser::{Ast, BinOpType};
+    use crate::parser::{Expression, BinOpType};
 
     #[test]
     fn test_interpreter_expr() {
         // Expression: 1 + 2 * 3 + 4
         // With precedence: (1 + (2 * 3)) + 4
-        let ast = Ast::BinOp(
+        let ast = Expression::BinOp(
             BinOpType::Add,
-            Ast::BinOp(
+            Expression::BinOp(
                 BinOpType::Add,
-                Ast::I64(1).into(),
-                Ast::BinOp(BinOpType::Mul, Ast::I64(2).into(), Ast::I64(3).into()).into(),
+                Expression::I64(1).into(),
+                Expression::BinOp(BinOpType::Mul, Expression::I64(2).into(), Expression::I64(3).into()).into(),
             )
             .into(),
-            Ast::I64(4).into(),
+            Expression::I64(4).into(),
         );
 
         let expected = Value::I64(11);

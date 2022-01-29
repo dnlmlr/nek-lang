@@ -36,6 +36,7 @@
 - [x] Variables
   - [x] Declaration
   - [x] Assignment
+- [x] Statements with semicolon & Multiline programs
 - [ ] Control flow
   - [ ] While loop `while X { ... }`
   - [ ] If else statement `if X { ... } else { ... }`
@@ -50,7 +51,6 @@
 ## Grammar
 
 ### Expressions
-
 ```
 expr_primary = LITERAL | IDENT | "(" expr ")" | "-" expr_primary | "~" expr_primary
 expr_mul = expr_primary (("*" | "/" | "%") expr_primary)*
@@ -62,4 +62,10 @@ expr_band = expr_equ ("&" expr_equ)*
 expr_bxor = expr_band ("^" expr_band)*
 expr_bor = expr_bxor ("|" expr_bxor)*
 expr = expr_bor
+```
+
+### Statements
+```
+stmt_expr = expr ";"
+stmt = stmt_expr
 ```

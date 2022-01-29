@@ -7,15 +7,19 @@ fn main() {
 
     let mut interpreter = Interpreter::new();
 
-    let mut code = String::new();
+    // let mut code = String::new();
+    let code = "
+        a <- 5;
+        a * 2;
+    ";
 
-    loop {
-        print!(">> ");
-        std::io::stdout().flush().unwrap();
+    // loop {
+        // print!(">> ");
+        // std::io::stdout().flush().unwrap();
 
-        code.clear();
-        std::io::stdin().read_line(&mut code).unwrap();
-        let code = code.trim();
+        // code.clear();
+        // std::io::stdin().read_line(&mut code).unwrap();
+        // let code = code.trim();
 
         let tokens = lex(&code);
 
@@ -26,6 +30,6 @@ fn main() {
         println!("Ast: {:#?}\n", ast);
 
         interpreter.run(ast);
-    }
+    // }
 
 }

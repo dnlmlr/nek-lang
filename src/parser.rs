@@ -70,15 +70,25 @@ pub enum UnOpType {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Ast {
+pub enum Expression {
     /// Integer literal (64-bit)
     I64(i64),
     /// Variable
     Var(String),
     /// Binary operation. Consists of type, left hand side and right hand side
-    BinOp(BinOpType, Box<Ast>, Box<Ast>),
+    BinOp(BinOpType, Box<Expression>, Box<Expression>),
     /// Unary operation. Consists of type and operand
-    UnOp(UnOpType, Box<Ast>),
+    UnOp(UnOpType, Box<Expression>),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Statement {
+    Expr(Expression),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Ast {
+    pub prog: Vec<Statement>
 }
 
 struct Parser<T: Iterator<Item = Token>> {
@@ -93,16 +103,44 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn parse(&mut self) -> Ast {
-        self.parse_expr()
+        let mut prog = Vec::new();
+
+        loop {
+            match self.peek() {
+                Token::Semicolon => {
+                    self.next();
+                }
+                Token::EoF => break,
+
+                // By default try to lex a statement
+                _ => {
+                    prog.push(self.parse_stmt())
+                }
+            }
+        }
+
+        Ast { prog }
+
     }
 
-    fn parse_expr(&mut self) -> Ast {
+    fn parse_stmt(&mut self) -> Statement {
+        let expr = self.parse_expr();
+
+        // After a statement, there must be a semicolon
+        if !matches!(self.next(), Token::Semicolon) {
+            panic!("Expected semicolon after statement");
+        }
+
+        Statement::Expr(expr)
+    }
+
+    fn parse_expr(&mut self) -> Expression {
         let lhs = self.parse_primary();
         self.parse_expr_precedence(lhs, 0)
     }
 
     /// Parse binary expressions with a precedence equal to or higher than min_prec
-    fn parse_expr_precedence(&mut self, mut lhs: Ast, min_prec: u8) -> Ast {
+    fn parse_expr_precedence(&mut self, mut lhs: Expression, min_prec: u8) -> Expression {
         while let Some(binop) = &self.peek().try_to_binop() {
             // Stop if the next operator has a lower binding power
             if !(binop.precedence() >= min_prec) {
@@ -123,19 +161,19 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 rhs = self.parse_expr_precedence(rhs, binop.precedence() + 1);
             }
 
-            lhs = Ast::BinOp(binop, lhs.into(), rhs.into());
+            lhs = Expression::BinOp(binop, lhs.into(), rhs.into());
         }
 
         lhs
     }
 
     /// Parse a primary expression (for now only number)
-    fn parse_primary(&mut self) -> Ast {
+    fn parse_primary(&mut self) -> Expression {
         match self.next() {
             // Literal i64
-            Token::I64(val) => Ast::I64(val),
+            Token::I64(val) => Expression::I64(val),
 
-            Token::Ident(name) => Ast::Var(name),
+            Token::Ident(name) => Expression::Var(name),
 
             // Parentheses grouping
             Token::LParen => {
@@ -152,12 +190,12 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             // Unary negation
             Token::Sub => {
                 let operand = self.parse_primary();
-                Ast::UnOp(UnOpType::Negate, operand.into())
+                Expression::UnOp(UnOpType::Negate, operand.into())
             }
 
             Token::Tilde => {
                 let operand = self.parse_primary();
-                Ast::UnOp(UnOpType::BNot, operand.into())
+                Expression::UnOp(UnOpType::BNot, operand.into())
             }
 
             tok => panic!("Error parsing primary expr: Unexpected Token '{:?}'", tok),
@@ -206,8 +244,8 @@ impl BinOpType {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse, Ast, BinOpType};
-    use crate::lexer::Token;
+    use super::{parse, Expression, BinOpType};
+    use crate::{lexer::Token, parser::{Statement, Ast}};
 
     #[test]
     fn test_parser() {
@@ -223,16 +261,18 @@ mod tests {
             Token::I64(4),
         ];
 
-        let expected = Ast::BinOp(
+        let expected = Statement::Expr(Expression::BinOp(
             BinOpType::Sub,
-            Ast::BinOp(
+            Expression::BinOp(
                 BinOpType::Add,
-                Ast::I64(1).into(),
-                Ast::BinOp(BinOpType::Mul, Ast::I64(2).into(), Ast::I64(3).into()).into(),
+                Expression::I64(1).into(),
+                Expression::BinOp(BinOpType::Mul, Expression::I64(2).into(), Expression::I64(3).into()).into(),
             )
             .into(),
-            Ast::I64(4).into(),
-        );
+            Expression::I64(4).into(),
+        ));
+
+        let expected = Ast { prog: vec![expected] };
 
         let actual = parse(tokens);
         assert_eq!(expected, actual);

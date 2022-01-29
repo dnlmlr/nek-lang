@@ -73,6 +73,9 @@ pub enum Token {
     /// Equal Sign (=)
     Equ,
 
+    /// Semicolon (;)
+    Semicolon,
+
     /// End of file
     EoF,
 }
@@ -93,7 +96,7 @@ impl<'a> Lexer<'a> {
         loop {
             match self.next() {
                 // Skip whitespace
-                ' ' | '\t' => (),
+                ' ' | '\t' | '\n' | '\r' => (),
 
                 // Stop lexing at EOF
                 '\0' => break,
@@ -127,6 +130,7 @@ impl<'a> Lexer<'a> {
                     tokens.push(Token::LArrow);
                 }
                 
+                ';' => tokens.push(Token::Semicolon),
                 '+' => tokens.push(Token::Add),
                 '-' => tokens.push(Token::Sub),
                 '*' => tokens.push(Token::Mul),
