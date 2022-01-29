@@ -73,21 +73,6 @@ pub enum Ast {
     UnOp(UnOpType, Box<Ast>),
 }
 
-/*
-## Grammar
-### Expressions
-expr_primary = LITERAL | "(" expr p | "-" expr_primary | "~" expr_primary
-expr_mul = expr_primary (("*" | "/" | "%") expr_primary)*
-expr_add = expr_mul (("+" | "-") expr_mul)*
-expr_shift = expr_add ((">>" | "<<") expr_add)*
-expr_rel = expr_shift ((">" | ">=" | "<" | "<=") expr_shift)*
-expr_equ = expr_rel (("==" | "!=") expr_rel)*
-expr_band = expr_equ ("&" expr_equ)*
-expr_bxor = expr_band ("^" expr_band)*
-expr_bor = expr_bxor ("|" expr_bxor)*
-expr = expr_bor
-*/
-
 struct Parser<T: Iterator<Item = Token>> {
     tokens: Peekable<T>,
 }
