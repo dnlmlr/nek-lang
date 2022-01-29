@@ -19,13 +19,13 @@
   - [x] Unary operators
     - [x] Negate `-X`
   - [x] Parentheses `(X+Y)*Z`
-  - [ ] Logical boolean operators
+  - [x] Logical boolean operators
     - [x] Equal `==`
     - [x] Not equal `!=`
-    - [ ] Greater than `>`
-    - [ ] Less than `<`
-    - [ ] Greater than or equal `>=`
-    - [ ] Less than or equal `<=`
+    - [x] Greater than `>`
+    - [x] Less than `<`
+    - [x] Greater than or equal `>=`
+    - [x] Less than or equal `<=`
   - [x] Bitwise operators
     - [x] Bitwise AND `X&Y`
     - [x] Bitwise OR `X|Y`

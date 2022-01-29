@@ -56,6 +56,10 @@ impl Interpreter {
                 BinOpType::Shl => Value::I64(lhs << rhs),
                 BinOpType::EquEqu => Value::I64(if lhs == rhs { 1 } else { 0 }),
                 BinOpType::NotEqu => Value::I64(if lhs != rhs { 1 } else { 0 }),
+                BinOpType::Less => Value::I64(if lhs < rhs { 1 } else { 0 }),
+                BinOpType::LessEqu => Value::I64(if lhs <= rhs { 1 } else { 0 }),
+                BinOpType::Greater => Value::I64(if lhs > rhs { 1 } else { 0 }),
+                BinOpType::GreaterEqu => Value::I64(if lhs >= rhs { 1 } else { 0 }),
             },
             // _ => panic!("Value types are not compatible"),
         }

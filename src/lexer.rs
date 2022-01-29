@@ -52,6 +52,18 @@ pub enum Token {
     /// Tilde (~)
     Tilde,
 
+    /// Left angle bracket (<)
+    LAngle,
+
+    /// Right angle bracket (>)
+    RAngle,
+
+    /// Left angle bracket Equal (<=)
+    LAngleEqu, 
+    
+    /// Left angle bracket Equal (>=)
+    RAngleEqu,
+
     /// End of file
     EoF,
 }
@@ -114,7 +126,15 @@ impl<'a> Lexer<'a> {
                     self.next();
                     tokens.push(Token::NotEqu);
                 }
-
+                '<' if matches!(self.peek(), Some('=')) => {
+                    self.next();
+                    tokens.push(Token::LAngleEqu);
+                }
+                '>' if matches!(self.peek(), Some('=')) => {
+                    self.next();
+                    tokens.push(Token::RAngleEqu);
+                }
+                
                 '+' => tokens.push(Token::Add),
                 '-' => tokens.push(Token::Sub),
                 '*' => tokens.push(Token::Mul),
@@ -126,6 +146,8 @@ impl<'a> Lexer<'a> {
                 '(' => tokens.push(Token::LParen),
                 ')' => tokens.push(Token::RParen),
                 '~' => tokens.push(Token::Tilde),
+                '<' => tokens.push(Token::LAngle),
+                '>' => tokens.push(Token::RAngle),
 
                 //TODO: Don't panic, keep calm
                 _ => panic!("Lexer encountered unexpected char: '{}'", ch),
@@ -173,6 +195,12 @@ impl Token {
 
             Token::EquEqu => BinOpType::EquEqu,
             Token::NotEqu => BinOpType::NotEqu,
+
+            Token::LAngle => BinOpType::Less,
+            Token::LAngleEqu => BinOpType::LessEqu,
+            
+            Token::RAngle => BinOpType::Greater,
+            Token::RAngleEqu => BinOpType::GreaterEqu,
 
             _ => return None,
         })

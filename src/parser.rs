@@ -26,6 +26,18 @@ pub enum BinOpType {
     /// Compare Not Equal
     NotEqu,
 
+    /// Less than
+    Less,
+
+    /// Less than or Equal
+    LessEqu,
+
+    /// Greater than
+    Greater,
+
+    /// Greater than or Equal
+    GreaterEqu,
+
     /// Bitwise OR (inclusive or)
     BOr,
 
@@ -184,9 +196,10 @@ impl BinOpType {
             BinOpType::BXor => 1,
             BinOpType::BAnd => 2,
             BinOpType::EquEqu | BinOpType::NotEqu => 3,
-            BinOpType::Shl | BinOpType::Shr => 4,
-            BinOpType::Add | BinOpType::Sub => 5,
-            BinOpType::Mul | BinOpType::Div | BinOpType::Mod => 6,
+            BinOpType::Less | BinOpType::LessEqu | BinOpType::Greater | BinOpType::GreaterEqu => 4,
+            BinOpType::Shl | BinOpType::Shr => 5,
+            BinOpType::Add | BinOpType::Sub => 6,
+            BinOpType::Mul | BinOpType::Div | BinOpType::Mod => 7,
         }
     }
 }
