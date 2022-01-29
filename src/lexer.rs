@@ -43,6 +43,9 @@ pub enum Token {
     /// Shift Right (>>)
     Shr,
 
+    /// Tilde (~)
+    Tilde,
+
     /// End of file
     EoF,
 }
@@ -107,6 +110,7 @@ impl<'a> Lexer<'a> {
                 '^' => tokens.push(Token::BXor),
                 '(' => tokens.push(Token::LParen),
                 ')' => tokens.push(Token::RParen),
+                '~' => tokens.push(Token::Tilde),
 
                 //TODO: Don't panic, keep calm
                 _ => panic!("Lexer encountered unexpected char: '{}'", ch),

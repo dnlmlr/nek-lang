@@ -33,6 +33,7 @@ impl Interpreter {
 
         match (operand, uo) {
             (Value::I64(val), UnOpType::Negate) => Value::I64(-val),
+            (Value::I64(val), UnOpType::BNot) => Value::I64(!val),
             // _ => panic!("Value type is not compatible with unary operation"),
         }
     }

@@ -40,6 +40,9 @@ pub enum BinOpType {
 pub enum UnOpType {
     /// Unary Negate
     Negate,
+
+    /// Bitwise Not
+    BNot,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -55,7 +58,7 @@ pub enum Ast {
 /*
 ## Grammar
 ### Expressions
-expr_primary = LITERAL | "(" expr p | "-" expr_primary
+expr_primary = LITERAL | "(" expr p | "-" expr_primary | "~" expr_primary
 expr_mul = expr_primary (("*" | "/" | "%") expr_primary)*
 expr_add = expr_mul (("+" | "-") expr_mul)*
 expr_shift = expr_add ((">>" | "<<") expr_add)*
@@ -135,6 +138,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             Token::Sub => {
                 let operand = self.parse_primary();
                 Ast::UnOp(UnOpType::Negate, operand.into())
+            }
+
+            Token::Tilde => {
+                let operand = self.parse_primary();
+                Ast::UnOp(UnOpType::BNot, operand.into())
             }
 
             tok => panic!("Error parsing primary expr: Unexpected Token '{:?}'", tok),

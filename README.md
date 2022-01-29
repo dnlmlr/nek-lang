@@ -30,7 +30,7 @@
     - [x] Bitwise AND `X&Y`
     - [x] Bitwise OR `X|Y`
     - [x] Bitwise XOR `X^Y`
-    - [ ] Bitwise NOT `~X`
+    - [x] Bitwise NOT `~X`
     - [x] Bitwise left shift `X<<Y`
     - [x] Bitwise right shift `X>>Y`
 - [ ] Variables
