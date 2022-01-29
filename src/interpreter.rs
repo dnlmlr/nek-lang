@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::parser::{Ast, BinOpType, UnOpType};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -6,12 +8,15 @@ pub enum Value {
 }
 
 pub struct Interpreter {
-    // Runtime storage, for example variables ...
+    // Variable table stores the runtime values of variables
+    vartable: HashMap<String, Value>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            vartable: HashMap::new(),
+        }
     }
 
     pub fn run(&mut self, prog: Ast) {
@@ -25,6 +30,14 @@ impl Interpreter {
             Ast::I64(val) => Value::I64(val),
             Ast::BinOp(bo, lhs, rhs) => self.resolve_binop(bo, *lhs, *rhs),
             Ast::UnOp(uo, operand) => self.resolve_unop(uo, *operand),
+            Ast::Var(name) => self.resolve_var(name),
+        }
+    }
+
+    fn resolve_var(&mut self, name: String) -> Value {
+        match self.vartable.get(&name) {
+            Some(val) => val.clone(),
+            None => panic!("Variable '{}' used but not declared", name),
         }
     }
 
@@ -39,8 +52,24 @@ impl Interpreter {
     }
 
     fn resolve_binop(&mut self, bo: BinOpType, lhs: Ast, rhs: Ast) -> Value {
-        let lhs = self.resolve_expr(lhs);
         let rhs = self.resolve_expr(rhs);
+
+        match (&bo, &lhs) {
+            (BinOpType::Declare, Ast::Var(name)) => {
+                self.vartable.insert(name.clone(), rhs.clone());
+                return rhs;
+            }
+            (BinOpType::Assign, Ast::Var(name)) => {
+                match self.vartable.get_mut(name) {
+                    Some(val) => *val = rhs.clone(),
+                    None => panic!("Runtime Error: Trying to assign value to undeclared variable"),
+                }
+                return rhs;
+            }
+            _ => ()
+        }
+        
+        let lhs = self.resolve_expr(lhs);
 
         match (lhs, rhs) {
             (Value::I64(lhs), Value::I64(rhs)) => match bo {
@@ -60,6 +89,8 @@ impl Interpreter {
                 BinOpType::LessEqu => Value::I64(if lhs <= rhs { 1 } else { 0 }),
                 BinOpType::Greater => Value::I64(if lhs > rhs { 1 } else { 0 }),
                 BinOpType::GreaterEqu => Value::I64(if lhs >= rhs { 1 } else { 0 }),
+
+                BinOpType::Declare | BinOpType::Assign => unreachable!(),
             },
             // _ => panic!("Value types are not compatible"),
         }

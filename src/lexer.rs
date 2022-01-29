@@ -7,6 +7,9 @@ pub enum Token {
     /// Integer literal (64-bit)
     I64(i64),
 
+    /// Identifier (name for variables, functions, ...)
+    Ident(String),
+    
     /// Left Parenthesis ('(')
     LParen,
 
@@ -64,6 +67,12 @@ pub enum Token {
     /// Left angle bracket Equal (>=)
     RAngleEqu,
 
+    /// Left arrow (<-)
+    LArrow,
+
+    /// Equal Sign (=)
+    Equ,
+
     /// End of file
     EoF,
 }
@@ -89,30 +98,6 @@ impl<'a> Lexer<'a> {
                 // Stop lexing at EOF
                 '\0' => break,
 
-                // Lex numbers
-                ch @ '0'..='9' => {
-                    let mut sval = String::from(ch);
-
-                    // Do as long as a next char exists and it is a numeric char
-                    loop {
-                        // The next char is verified to be Some, so unwrap is safe
-                        match self.peek() {
-                            // Underscore is a separator, so remove it but don't add to number
-                            '_' => {
-                                self.next();
-                            }
-                            '0'..='9' => {
-                                sval.push(self.next());
-                            }
-                            // Next char is not a number, so stop and finish the number token
-                            _ => break,
-                        }
-                    }
-
-                    // TODO: We only added numeric chars to the string, but the conversion could still fail
-                    tokens.push(Token::I64(sval.parse().unwrap()));
-                }
-
                 '>' if matches!(self.peek(), '>') => {
                     self.next();
                     tokens.push(Token::Shr);
@@ -137,6 +122,10 @@ impl<'a> Lexer<'a> {
                     self.next();
                     tokens.push(Token::RAngleEqu);
                 }
+                '<' if matches!(self.peek(), '-') => {
+                    self.next();
+                    tokens.push(Token::LArrow);
+                }
                 
                 '+' => tokens.push(Token::Add),
                 '-' => tokens.push(Token::Sub),
@@ -151,6 +140,49 @@ impl<'a> Lexer<'a> {
                 '~' => tokens.push(Token::Tilde),
                 '<' => tokens.push(Token::LAngle),
                 '>' => tokens.push(Token::RAngle),
+                '=' => tokens.push(Token::Equ),
+
+                // Lex numbers
+                ch @ '0'..='9' => {
+                    let mut sval = String::from(ch);
+
+                    // Do as long as a next char exists and it is a numeric char
+                    loop {
+                        // The next char is verified to be Some, so unwrap is safe
+                        match self.peek() {
+                            // Underscore is a separator, so remove it but don't add to number
+                            '_' => {
+                                self.next();
+                            }
+                            '0'..='9' => {
+                                sval.push(self.next());
+                            }
+                            // Next char is not a number, so stop and finish the number token
+                            _ => break,
+                        }
+                    }
+
+                    // TODO: We only added numeric chars to the string, but the conversion could still fail
+                    tokens.push(Token::I64(sval.parse().unwrap()));
+                }
+                
+                // Lex characters as identifier
+                ch @ ('a'..='z' | 'A'..='Z' | '_') => {
+                    let mut ident = String::from(ch);
+
+                    // Do as long as a next char exists and it is a valid char for an identifier
+                    loop {
+                        match self.peek() {
+                            'a'..='z' | 'A'..='Z' | '0'..='9' | '_' => {
+                                ident.push(self.next());
+                            }
+                            // Next char is not valid, so stop and finish the ident token
+                            _ => break,
+                        }
+                    }
+
+                    tokens.push(Token::Ident(ident));
+                }
 
                 //TODO: Don't panic, keep calm
                 ch => panic!("Lexer encountered unexpected char: '{}'", ch),
@@ -204,6 +236,9 @@ impl Token {
             
             Token::RAngle => BinOpType::Greater,
             Token::RAngleEqu => BinOpType::GreaterEqu,
+
+            Token::LArrow => BinOpType::Declare,
+            Token::Equ => BinOpType::Assign,
 
             _ => return None,
         })

@@ -52,6 +52,12 @@ pub enum BinOpType {
 
     /// Shift Right
     Shr,
+
+    /// Assign value to variable
+    Assign,
+
+    /// Declare new variable with value
+    Declare,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -67,6 +73,8 @@ pub enum UnOpType {
 pub enum Ast {
     /// Integer literal (64-bit)
     I64(i64),
+    /// Variable
+    Var(String),
     /// Binary operation. Consists of type, left hand side and right hand side
     BinOp(BinOpType, Box<Ast>, Box<Ast>),
     /// Unary operation. Consists of type and operand
@@ -127,6 +135,8 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             // Literal i64
             Token::I64(val) => Ast::I64(val),
 
+            Token::Ident(name) => Ast::Var(name),
+
             // Parentheses grouping
             Token::LParen => {
                 let inner_expr = self.parse_expr();
@@ -177,6 +187,7 @@ impl BinOpType {
     /// The operator precedences are derived from the C language operator precedences. While not all
     /// C operators are included or the exact same, the precedence oder is the same.
     /// See: https://en.cppreference.com/w/c/language/operator_precedence
+
     fn precedence(&self) -> u8 {
         match self {
             BinOpType::BOr => 0,
@@ -187,6 +198,8 @@ impl BinOpType {
             BinOpType::Shl | BinOpType::Shr => 5,
             BinOpType::Add | BinOpType::Sub => 6,
             BinOpType::Mul | BinOpType::Div | BinOpType::Mod => 7,
+            BinOpType::Assign => 8,
+            BinOpType::Declare => 9,
         }
     }
 }

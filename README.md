@@ -33,9 +33,9 @@
     - [x] Bitwise NOT `~X`
     - [x] Bitwise left shift `X<<Y`
     - [x] Bitwise right shift `X>>Y`
-- [ ] Variables
-  - [ ] Declaration
-  - [ ] Assignment
+- [x] Variables
+  - [x] Declaration
+  - [x] Assignment
 - [ ] Control flow
   - [ ] While loop `while X { ... }`
   - [ ] If else statement `if X { ... } else { ... }`
@@ -52,7 +52,7 @@
 ### Expressions
 
 ```
-expr_primary = LITERAL | "(" expr p | "-" expr_primary | "~" expr_primary
+expr_primary = LITERAL | IDENT | "(" expr ")" | "-" expr_primary | "~" expr_primary
 expr_mul = expr_primary (("*" | "/" | "%") expr_primary)*
 expr_add = expr_mul (("+" | "-") expr_mul)*
 expr_shift = expr_add ((">>" | "<<") expr_add)*
