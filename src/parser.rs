@@ -47,12 +47,12 @@ pub enum Ast {
 /*
 ## Grammar
 ### Expressions
-expr_primary = LITERAL
+expr_primary = LITERAL | "(" expr ")"
 expr_mul = expr_primary (("*" | "/" | "%") expr_primary)*
 expr_add = expr_mul (("+" | "-") expr_mul)*
 expr_shift = expr_add ((">>" | "<<") expr_add)*
 expr_band = expr_shift ("&" expr_shift)*
-expr_bxor = expr_band ("^") expr_band)*
+expr_bxor = expr_band ("^" expr_band)*
 expr_bor = expr_bxor ("|" expr_bxor)*
 expr = expr_bor
 */
@@ -110,6 +110,17 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         match self.next() {
             Token::I64(val) => Ast::I64(val),
 
+            Token::LParen => {
+                let inner_expr = self.parse_expr();
+
+                // Verify that there is a closing parenthesis
+                if !matches!(self.next(), Token::RParen) {
+                    panic!("Error parsing primary expr: Exepected closing parenthesis ')'");
+                }
+
+                inner_expr
+            }
+
             tok => panic!("Error parsing primary expr: Unexpected Token '{:?}'", tok),
         }
     }
@@ -133,9 +144,9 @@ pub fn parse<T: Iterator<Item = Token>, A: IntoIterator<IntoIter = T>>(tokens: A
 impl BinOpType {
     /// Get the precedence for a binary operator. Higher value means the OP is stronger binding.
     /// For example Multiplication is stronger than addition, so Mul has higher precedence than Add.
-    /// 
+    ///
     /// The operator precedences are derived from the C language operator precedences. While not all
-    /// C operators are included or the exact same, the precedence oder is the same. 
+    /// C operators are included or the exact same, the precedence oder is the same.
     /// See: https://en.cppreference.com/w/c/language/operator_precedence
     fn precedence(&self) -> u8 {
         match self {

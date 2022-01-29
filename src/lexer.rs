@@ -7,6 +7,12 @@ pub enum Token {
     /// Integer literal (64-bit)
     I64(i64),
 
+    /// Left Parenthesis ('(')
+    LParen,
+
+    /// Right Parenthesis (')')
+    RParen,
+
     /// Plus (+)
     Add,
 
@@ -99,6 +105,8 @@ impl<'a> Lexer<'a> {
                 '|' => tokens.push(Token::BOr),
                 '&' => tokens.push(Token::BAnd),
                 '^' => tokens.push(Token::BXor),
+                '(' => tokens.push(Token::LParen),
+                ')' => tokens.push(Token::RParen),
 
                 //TODO: Don't panic, keep calm
                 _ => panic!("Lexer encountered unexpected char: '{}'", ch),
