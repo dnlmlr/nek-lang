@@ -12,7 +12,7 @@
 - [x] Math expressions
   - [ ] Unary operators
     - [ ] Negate `-X`
-  - [ ] Parentheses `(X+Y)*Z`
+  - [x] Parentheses `(X+Y)*Z`
   - [ ] Logical boolean operators
 - [ ] Variables
   - [ ] Declaration
