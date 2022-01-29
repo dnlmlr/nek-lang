@@ -81,25 +81,28 @@ impl<'a> Lexer<'a> {
     fn lex(&mut self) -> Vec<Token> {
         let mut tokens = Vec::new();
 
-        while let Some(ch) = self.next() {
-            match ch {
+        loop {
+            match self.next() {
                 // Skip whitespace
-                ' ' => (),
+                ' ' | '\t' => (),
+
+                // Stop lexing at EOF
+                '\0' => break,
 
                 // Lex numbers
-                '0'..='9' => {
+                ch @ '0'..='9' => {
                     let mut sval = String::from(ch);
 
                     // Do as long as a next char exists and it is a numeric char
-                    while let Some(ch) = self.peek() {
+                    loop {
                         // The next char is verified to be Some, so unwrap is safe
-                        match ch {
+                        match self.peek() {
                             // Underscore is a separator, so remove it but don't add to number
                             '_' => {
-                                self.next().unwrap();
+                                self.next();
                             }
                             '0'..='9' => {
-                                sval.push(self.next().unwrap());
+                                sval.push(self.next());
                             }
                             // Next char is not a number, so stop and finish the number token
                             _ => break,
@@ -110,27 +113,27 @@ impl<'a> Lexer<'a> {
                     tokens.push(Token::I64(sval.parse().unwrap()));
                 }
 
-                '>' if matches!(self.peek(), Some('>')) => {
+                '>' if matches!(self.peek(), '>') => {
                     self.next();
                     tokens.push(Token::Shr);
                 }
-                '<' if matches!(self.peek(), Some('<')) => {
+                '<' if matches!(self.peek(), '<') => {
                     self.next();
                     tokens.push(Token::Shl);
                 }
-                '=' if matches!(self.peek(), Some('=')) => {
+                '=' if matches!(self.peek(), '=') => {
                     self.next();
                     tokens.push(Token::EquEqu);
                 }
-                '!' if matches!(self.peek(), Some('=')) => {
+                '!' if matches!(self.peek(), '=') => {
                     self.next();
                     tokens.push(Token::NotEqu);
                 }
-                '<' if matches!(self.peek(), Some('=')) => {
+                '<' if matches!(self.peek(), '=') => {
                     self.next();
                     tokens.push(Token::LAngleEqu);
                 }
-                '>' if matches!(self.peek(), Some('=')) => {
+                '>' if matches!(self.peek(), '=') => {
                     self.next();
                     tokens.push(Token::RAngleEqu);
                 }
@@ -150,7 +153,7 @@ impl<'a> Lexer<'a> {
                 '>' => tokens.push(Token::RAngle),
 
                 //TODO: Don't panic, keep calm
-                _ => panic!("Lexer encountered unexpected char: '{}'", ch),
+                ch => panic!("Lexer encountered unexpected char: '{}'", ch),
             }
         }
 
@@ -158,13 +161,13 @@ impl<'a> Lexer<'a> {
     }
 
     /// Advance to next character and return the removed char
-    fn next(&mut self) -> Option<char> {
-        self.code.next()
+    fn next(&mut self) -> char {
+        self.code.next().unwrap_or('\0')
     }
 
     /// Get the next character without removing it
-    fn peek(&mut self) -> Option<char> {
-        self.code.peek().copied()
+    fn peek(&mut self) -> char {
+        self.code.peek().copied().unwrap_or('\0')
     }
 }
 
