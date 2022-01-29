@@ -9,7 +9,7 @@ pub enum Token {
 
     /// Identifier (name for variables, functions, ...)
     Ident(String),
-    
+
     /// Left Parenthesis ('(')
     LParen,
 
@@ -62,8 +62,8 @@ pub enum Token {
     RAngle,
 
     /// Left angle bracket Equal (<=)
-    LAngleEqu, 
-    
+    LAngleEqu,
+
     /// Left angle bracket Equal (>=)
     RAngleEqu,
 
@@ -129,7 +129,9 @@ impl<'a> Lexer<'a> {
                     self.next();
                     tokens.push(Token::LArrow);
                 }
-                
+                // Line comment. Consume every char until linefeed (next line)
+                '/' if matches!(self.peek(), '/') => while self.next() != '\n' {},
+
                 ';' => tokens.push(Token::Semicolon),
                 '+' => tokens.push(Token::Add),
                 '-' => tokens.push(Token::Sub),
@@ -169,7 +171,7 @@ impl<'a> Lexer<'a> {
                     // TODO: We only added numeric chars to the string, but the conversion could still fail
                     tokens.push(Token::I64(sval.parse().unwrap()));
                 }
-                
+
                 // Lex characters as identifier
                 ch @ ('a'..='z' | 'A'..='Z' | '_') => {
                     let mut ident = String::from(ch);
@@ -237,7 +239,7 @@ impl Token {
 
             Token::LAngle => BinOpType::Less,
             Token::LAngleEqu => BinOpType::LessEqu,
-            
+
             Token::RAngle => BinOpType::Greater,
             Token::RAngleEqu => BinOpType::GreaterEqu,
 

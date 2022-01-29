@@ -1,5 +1,3 @@
-use std::io::Write;
-
 use nek_lang::{lexer::lex, parser::parse, interpreter::Interpreter};
 
 
@@ -10,6 +8,7 @@ fn main() {
     // let mut code = String::new();
     let code = "
         a <- 5;
+        // nek-lang best lang
         a * 2;
     ";
 

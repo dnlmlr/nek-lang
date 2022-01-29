@@ -42,7 +42,7 @@
   - [ ] If else statement `if X { ... } else { ... }`
     - [ ] If Statement
     - [ ] Else statement
-- [ ] Line comments `//`
+- [x] Line comments `//`
 - [ ] Strings
 - [ ] IO Intrinsics
   - [ ] Print
