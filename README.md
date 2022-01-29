@@ -10,8 +10,8 @@
 ## Language features
 
 - [x] Math expressions
-  - [ ] Unary operators
-    - [ ] Negate `-X`
+  - [x] Unary operators
+    - [x] Negate `-X`
   - [x] Parentheses `(X+Y)*Z`
   - [ ] Logical boolean operators
 - [ ] Variables

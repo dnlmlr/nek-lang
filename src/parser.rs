@@ -37,17 +37,25 @@ pub enum BinOpType {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
+pub enum UnOpType {
+    /// Unary Negate
+    Negate,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Ast {
     /// Integer literal (64-bit)
     I64(i64),
     /// Binary operation. Consists of type, left hand side and right hand side
     BinOp(BinOpType, Box<Ast>, Box<Ast>),
+    /// Unary operation. Consists of type and operand
+    UnOp(UnOpType, Box<Ast>),
 }
 
 /*
 ## Grammar
 ### Expressions
-expr_primary = LITERAL | "(" expr ")"
+expr_primary = LITERAL | "(" expr p | "-" expr_primary
 expr_mul = expr_primary (("*" | "/" | "%") expr_primary)*
 expr_add = expr_mul (("+" | "-") expr_mul)*
 expr_shift = expr_add ((">>" | "<<") expr_add)*
@@ -108,8 +116,10 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     /// Parse a primary expression (for now only number)
     fn parse_primary(&mut self) -> Ast {
         match self.next() {
+            // Literal i64
             Token::I64(val) => Ast::I64(val),
 
+            // Parentheses grouping
             Token::LParen => {
                 let inner_expr = self.parse_expr();
 
@@ -119,6 +129,12 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 }
 
                 inner_expr
+            }
+
+            // Unary negation
+            Token::Sub => {
+                let operand = self.parse_primary();
+                Ast::UnOp(UnOpType::Negate, operand.into())
             }
 
             tok => panic!("Error parsing primary expr: Unexpected Token '{:?}'", tok),

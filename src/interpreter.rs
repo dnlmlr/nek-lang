@@ -1,4 +1,4 @@
-use crate::parser::{Ast, BinOpType};
+use crate::parser::{Ast, BinOpType, UnOpType};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value {
@@ -24,6 +24,16 @@ impl Interpreter {
         match expr {
             Ast::I64(val) => Value::I64(val),
             Ast::BinOp(bo, lhs, rhs) => self.resolve_binop(bo, *lhs, *rhs),
+            Ast::UnOp(uo, operand) => self.resolve_unop(uo, *operand),
+        }
+    }
+
+    fn resolve_unop(&mut self, uo: UnOpType, operand: Ast) -> Value {
+        let operand = self.resolve_expr(operand);
+
+        match (operand, uo) {
+            (Value::I64(val), UnOpType::Negate) => Value::I64(-val),
+            // _ => panic!("Value type is not compatible with unary operation"),
         }
     }
 
