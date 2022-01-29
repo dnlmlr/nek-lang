@@ -80,7 +80,9 @@ expr_primary = LITERAL | "(" expr p | "-" expr_primary | "~" expr_primary
 expr_mul = expr_primary (("*" | "/" | "%") expr_primary)*
 expr_add = expr_mul (("+" | "-") expr_mul)*
 expr_shift = expr_add ((">>" | "<<") expr_add)*
-expr_band = expr_shift ("&" expr_shift)*
+expr_rel = expr_shift ((">" | ">=" | "<" | "<=") expr_shift)*
+expr_equ = expr_rel (("==" | "!=") expr_rel)*
+expr_band = expr_equ ("&" expr_equ)*
 expr_bxor = expr_band ("^" expr_band)*
 expr_bor = expr_bxor ("|" expr_bxor)*
 expr = expr_bor
