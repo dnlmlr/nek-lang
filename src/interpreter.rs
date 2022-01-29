@@ -54,6 +54,8 @@ impl Interpreter {
                 BinOpType::BXor => Value::I64(lhs ^ rhs),
                 BinOpType::Shr => Value::I64(lhs >> rhs),
                 BinOpType::Shl => Value::I64(lhs << rhs),
+                BinOpType::EquEqu => Value::I64(if lhs == rhs { 1 } else { 0 }),
+                BinOpType::NotEqu => Value::I64(if lhs != rhs { 1 } else { 0 }),
             },
             // _ => panic!("Value types are not compatible"),
         }

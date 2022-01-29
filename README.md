@@ -20,8 +20,8 @@
     - [x] Negate `-X`
   - [x] Parentheses `(X+Y)*Z`
   - [ ] Logical boolean operators
-    - [ ] Equal `==`
-    - [ ] Not equal `!=`
+    - [x] Equal `==`
+    - [x] Not equal `!=`
     - [ ] Greater than `>`
     - [ ] Less than `<`
     - [ ] Greater than or equal `>=`

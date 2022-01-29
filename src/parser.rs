@@ -20,6 +20,12 @@ pub enum BinOpType {
     /// Modulo
     Mod,
 
+    /// Compare Equal
+    EquEqu,
+
+    /// Compare Not Equal
+    NotEqu,
+
     /// Bitwise OR (inclusive or)
     BOr,
 
@@ -177,9 +183,10 @@ impl BinOpType {
             BinOpType::BOr => 0,
             BinOpType::BXor => 1,
             BinOpType::BAnd => 2,
-            BinOpType::Shl | BinOpType::Shr => 3,
-            BinOpType::Add | BinOpType::Sub => 4,
-            BinOpType::Mul | BinOpType::Div | BinOpType::Mod => 5,
+            BinOpType::EquEqu | BinOpType::NotEqu => 3,
+            BinOpType::Shl | BinOpType::Shr => 4,
+            BinOpType::Add | BinOpType::Sub => 5,
+            BinOpType::Mul | BinOpType::Div | BinOpType::Mod => 6,
         }
     }
 }

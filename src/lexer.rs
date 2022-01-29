@@ -28,6 +28,12 @@ pub enum Token {
     /// Percent (%)
     Mod,
 
+    /// Equal Equal (==)
+    EquEqu,
+
+    /// Exclamationmark Equal (!=)
+    NotEqu,
+
     /// Pipe (|)
     BOr,
 
@@ -100,6 +106,15 @@ impl<'a> Lexer<'a> {
                     self.next();
                     tokens.push(Token::Shl);
                 }
+                '=' if matches!(self.peek(), Some('=')) => {
+                    self.next();
+                    tokens.push(Token::EquEqu);
+                }
+                '!' if matches!(self.peek(), Some('=')) => {
+                    self.next();
+                    tokens.push(Token::NotEqu);
+                }
+
                 '+' => tokens.push(Token::Add),
                 '-' => tokens.push(Token::Sub),
                 '*' => tokens.push(Token::Mul),
@@ -155,6 +170,10 @@ impl Token {
 
             Token::Shl => BinOpType::Shl,
             Token::Shr => BinOpType::Shr,
+
+            Token::EquEqu => BinOpType::EquEqu,
+            Token::NotEqu => BinOpType::NotEqu,
+
             _ => return None,
         })
     }
