@@ -1,34 +1,55 @@
-use nek_lang::{lexer::lex, parser::parse, interpreter::Interpreter};
+use std::{env::args, fs, io::{stdout, Write, stdin}};
 
+use nek_lang::interpreter::Interpreter;
+
+
+#[derive(Debug, Default)]
+struct CliConfig {
+    print_tokens: bool,
+    print_ast: bool,
+    interactive: bool,
+    file: Option<String>,
+}
 
 fn main() {
 
+    let mut conf = CliConfig::default();
+
+    // Go through all commandline arguments except the first (filename)
+    for arg in args().skip(1) {
+        match arg.as_str() {
+            "--token" | "-t" => conf.print_tokens = true,
+            "--ast" | "-a" => conf.print_ast = true,
+            "--interactive" | "-i" => conf.interactive = true,
+            file if conf.file.is_none() => conf.file = Some(file.to_string()),
+            _ => panic!("Invalid argument: '{}'", arg),
+        }
+    }
+
     let mut interpreter = Interpreter::new();
 
-    // let mut code = String::new();
-    let code = "
-        a <- 5;
-        // nek-lang best lang
-        a * 2;
-    ";
+    if let Some(file) = &conf.file {
+        let code = fs::read_to_string(file).expect(&format!("File not found: '{}'", file));
+        interpreter.run_str(&code, conf.print_tokens, conf.print_ast);
+    }
 
-    // loop {
-        // print!(">> ");
-        // std::io::stdout().flush().unwrap();
+    if conf.interactive || conf.file.is_none() {
+        let mut code = String::new();
 
-        // code.clear();
-        // std::io::stdin().read_line(&mut code).unwrap();
-        // let code = code.trim();
+        loop {
+            print!(">> ");
+            stdout().flush().unwrap();
 
-        let tokens = lex(&code);
+            code.clear();
+            stdin().read_line(&mut code).unwrap();
+            
+            if code.trim() == "exit" {
+                break;
+            }
 
-        println!("Tokens: {:?}\n", tokens);
+            interpreter.run_str(&code, conf.print_tokens, conf.print_ast);
+        }
 
-        let ast = parse(tokens);
-
-        println!("Ast: {:#?}\n", ast);
-
-        interpreter.run(ast);
-    // }
+    }
 
 }

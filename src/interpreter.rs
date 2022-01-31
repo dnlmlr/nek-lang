@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::parser::{Expression, BinOpType, UnOpType, Ast, Statement};
+use crate::{parser::{Expression, BinOpType, UnOpType, Ast, Statement, parse}, lexer::lex};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value {
@@ -17,6 +17,20 @@ impl Interpreter {
         Self {
             vartable: HashMap::new(),
         }
+    }
+
+    pub fn run_str(&mut self, code: &str, print_tokens: bool, print_ast: bool) {
+        let tokens = lex(code);
+        if print_tokens {
+            println!("Tokens: {:?}", tokens);
+        }
+
+        let ast = parse(tokens);
+        if print_ast {
+            println!("{:#?}", ast);
+        }
+
+        self.run(ast);
     }
 
     pub fn run(&mut self, prog: Ast) {
