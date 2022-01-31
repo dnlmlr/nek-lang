@@ -82,8 +82,19 @@ pub enum Expression {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Loop {
+    /// The condition that determines if the loop should continue
+    pub condition: Expression,
+    /// This is executed after each loop to advance the condition variables
+    pub advancement: Option<Expression>,
+    /// The loop body that is executed each loop
+    pub body: Ast,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Statement {
     Expr(Expression),
+    Loop(Loop),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -111,6 +122,10 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                     self.next();
                 }
                 Token::EoF => break,
+                Token::RBraces => {
+                    self.next();
+                    break;
+                }
 
                 // By default try to lex a statement
                 _ => {
@@ -124,14 +139,59 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn parse_stmt(&mut self) -> Statement {
-        let expr = self.parse_expr();
+        match self.peek() {
+            Token::Loop => Statement::Loop(self.parse_loop()),
 
-        // After a statement, there must be a semicolon
-        if !matches!(self.next(), Token::Semicolon) {
-            panic!("Expected semicolon after statement");
+            // If it is not a loop, try to lex as an expression
+            _ => {
+                let stmt = Statement::Expr(self.parse_expr());
+
+                // After a statement, there must be a semicolon
+                if !matches!(self.next(), Token::Semicolon) {
+                    panic!("Expected semicolon after statement");
+                }
+
+                stmt
+            }
+        }
+    }
+
+    // loop i < 1_000; i = i +1 {
+    //     if i % 3 == 0 | i % 5 == 0 {
+    //         sum = sum + i;
+    //     }
+    // }
+
+    fn parse_loop(&mut self) -> Loop {
+        if !matches!(self.next(), Token::Loop) {
+            panic!("Error lexing loop: Expected loop token");
         }
 
-        Statement::Expr(expr)
+        let condition = self.parse_expr();
+        let mut advancement = None;
+
+        let body;
+
+        match self.next() {
+            Token::LBraces => {
+                body = self.parse();
+            }
+
+            Token::Semicolon => {
+                advancement = Some(self.parse_expr());
+
+                if !matches!(self.next(), Token::LBraces) {
+                    panic!("Error lexing loop: Expected '{{'")
+                }
+
+                body = self.parse();
+            },
+
+            _ => panic!("Error lexing loop: Expected ';' or '{{'")
+        }
+
+        Loop { condition, advancement, body }
+
     }
 
     fn parse_expr(&mut self) -> Expression {
@@ -228,16 +288,16 @@ impl BinOpType {
 
     fn precedence(&self) -> u8 {
         match self {
-            BinOpType::BOr => 0,
-            BinOpType::BXor => 1,
-            BinOpType::BAnd => 2,
-            BinOpType::EquEqu | BinOpType::NotEqu => 3,
-            BinOpType::Less | BinOpType::LessEqu | BinOpType::Greater | BinOpType::GreaterEqu => 4,
-            BinOpType::Shl | BinOpType::Shr => 5,
-            BinOpType::Add | BinOpType::Sub => 6,
-            BinOpType::Mul | BinOpType::Div | BinOpType::Mod => 7,
-            BinOpType::Assign => 8,
-            BinOpType::Declare => 9,
+            BinOpType::Declare => 0,
+            BinOpType::Assign => 1,
+            BinOpType::BOr => 2,
+            BinOpType::BXor => 3,
+            BinOpType::BAnd => 4,
+            BinOpType::EquEqu | BinOpType::NotEqu => 5,
+            BinOpType::Less | BinOpType::LessEqu | BinOpType::Greater | BinOpType::GreaterEqu => 6,
+            BinOpType::Shl | BinOpType::Shr => 7,
+            BinOpType::Add | BinOpType::Sub => 8,
+            BinOpType::Mul | BinOpType::Div | BinOpType::Mod => 9,
         }
     }
 }

@@ -40,6 +40,21 @@ impl Interpreter {
                     let result = self.resolve_expr(expr);
                     println!("Result = {:?}", result);
                 }
+
+                Statement::Loop(lop) => {
+                    // loop runs as long condition != 0
+                    loop {
+                        if matches!(self.resolve_expr(lop.condition.clone()), Value::I64(0)) {
+                            break;
+                        }
+
+                        self.run(lop.body.clone());
+
+                        if let Some(adv) = &lop.advancement {
+                            self.resolve_expr(adv.clone());
+                        }
+                    }
+                }
             }
 
         }

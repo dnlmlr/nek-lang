@@ -10,11 +10,19 @@ pub enum Token {
     /// Identifier (name for variables, functions, ...)
     Ident(String),
 
+    Loop,
+
     /// Left Parenthesis ('(')
     LParen,
 
     /// Right Parenthesis (')')
     RParen,
+
+    /// Left curly braces ({)
+    LBraces,
+
+    /// Right curly braces (})
+    RBraces,
 
     /// Plus (+)
     Add,
@@ -147,6 +155,8 @@ impl<'a> Lexer<'a> {
                 '<' => tokens.push(Token::LAngle),
                 '>' => tokens.push(Token::RAngle),
                 '=' => tokens.push(Token::Equ),
+                '{' => tokens.push(Token::LBraces),
+                '}' => tokens.push(Token::RBraces),
 
                 // Lex numbers
                 ch @ '0'..='9' => {
@@ -187,7 +197,12 @@ impl<'a> Lexer<'a> {
                         }
                     }
 
-                    tokens.push(Token::Ident(ident));
+                    let token = match ident.as_str() {
+                        "loop" => Token::Loop,
+                        _ => Token::Ident(ident),
+                    };
+
+                    tokens.push(token);
                 }
 
                 //TODO: Don't panic, keep calm
