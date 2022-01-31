@@ -38,7 +38,7 @@
   - [x] Assignment
 - [x] Statements with semicolon & Multiline programs
 - [ ] Control flow
-  - [ ] While loop `while X { ... }`
+  - [x] While loop `while X { ... }`
   - [ ] If else statement `if X { ... } else { ... }`
     - [ ] If Statement
     - [ ] Else statement
@@ -66,6 +66,7 @@ expr = expr_bor
 
 ### Statements
 ```
+stmt_loop = "loop" expr (";" expr)? "{" stmt* "}"
 stmt_expr = expr ";"
-stmt = stmt_expr
+stmt = stmt_expr | stmt_loop
 ```
