@@ -57,7 +57,7 @@ Supported mathematical operations:
 The logical operators evaluate the operands as `false` if they are equal to `0` and `true` if they are not equal to `0`
 - And `a && b`
 - Or `a || b`
-- Not `!a`
+- Not `!a` (if `a` is equal to `0`, the result is `1`, otherwise the result is `0`)
 
 ### Equality & Relational Operators
 The equality and relational operations result in `1` if the condition is evaluated as `true` and in `0` if the condition is evaluated as `false`.
