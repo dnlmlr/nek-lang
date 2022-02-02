@@ -280,6 +280,7 @@ mod tests {
             Token::I64(3),
             Token::Sub,
             Token::I64(4),
+            Token::Semicolon,
         ];
 
         let expected = Statement::Expr(Expression::BinOp(

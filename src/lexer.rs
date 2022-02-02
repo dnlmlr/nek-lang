@@ -1,7 +1,7 @@
-use std::{iter::Peekable, str::Chars};
-use anyhow::Result;
-use thiserror::Error;
 use crate::token::Token;
+use anyhow::Result;
+use std::{iter::Peekable, str::Chars};
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum LexErr {
@@ -15,10 +15,17 @@ pub enum LexErr {
     UnexpectedChar(char),
 
     #[error("Missing closing string quote '\"'")]
-    MissingClosingString
+    MissingClosingString,
+}
+
+/// Lex the provided code into a Token Buffer
+pub fn lex(code: &str) -> Result<Vec<Token>, LexErr> {
+    let mut lexer = Lexer::new(code);
+    lexer.lex()
 }
 
 struct Lexer<'a> {
+    /// The sourcecode text as an iterator over the chars
     code: Peekable<Chars<'a>>,
 }
 
@@ -33,12 +40,16 @@ impl<'a> Lexer<'a> {
 
         loop {
             match self.next() {
-                // Skip whitespace
-                ' ' | '\t' | '\n' | '\r' => (),
-
                 // Stop lexing at EOF
                 '\0' => break,
 
+                // Skip whitespace
+                ' ' | '\t' | '\n' | '\r' => (),
+
+                // Line comment. Consume every char until linefeed (next line)
+                '/' if matches!(self.peek(), '/') => while !matches!(self.next(), '\n' | '\0') {},
+
+                // Double character tokens
                 '>' if matches!(self.peek(), '>') => {
                     self.next();
                     tokens.push(Token::Shr);
@@ -76,9 +87,7 @@ impl<'a> Lexer<'a> {
                     tokens.push(Token::LOr);
                 }
 
-                // Line comment. Consume every char until linefeed (next line)
-                '/' if matches!(self.peek(), '/') => while self.next() != '\n' {},
-
+                // Single character tokens
                 ';' => tokens.push(Token::Semicolon),
                 '+' => tokens.push(Token::Add),
                 '-' => tokens.push(Token::Sub),
@@ -100,6 +109,7 @@ impl<'a> Lexer<'a> {
 
                 // Lex numbers
                 ch @ '0'..='9' => {
+                    // String representation of the integer value
                     let mut sval = String::from(ch);
 
                     // Do as long as a next char exists and it is a numeric char
@@ -118,7 +128,7 @@ impl<'a> Lexer<'a> {
                         }
                     }
 
-                    // TODO: We only added numeric chars to the string, but the conversion could still fail
+                    // Try to convert the string representation of the value to i64
                     let i64val = sval.parse().map_err(|_| LexErr::NumericParse(sval))?;
                     tokens.push(Token::I64(i64val));
                 }
@@ -129,26 +139,25 @@ impl<'a> Lexer<'a> {
 
                     let mut text = String::new();
 
+                    // Read all chars until encountering the closing "
                     loop {
                         match self.peek() {
                             '"' => break,
+                            // If the end of file is reached while still waiting for '"', error out
                             '\0' => Err(LexErr::MissingClosingString)?,
-                            _ => {
-
-                                match self.next() {
-                                    '\\' => {
-                                        match self.next() {
-                                            'n' => text.push('\n'),
-                                            'r' => text.push('\r'),
-                                            't' => text.push('\t'),
-                                            '\\' => text.push('\\'),
-                                            '"' => text.push('"'),
-                                            ch => Err(LexErr::InvalidStrEscape(ch))?,
-                                        }
-                                    }
-                                    ch => text.push(ch),
-                                }
-                            }
+                            _ => match self.next() {
+                                // Backshlash indicates an escaped character 
+                                '\\' => match self.next() {
+                                    'n' => text.push('\n'),
+                                    'r' => text.push('\r'),
+                                    't' => text.push('\t'),
+                                    '\\' => text.push('\\'),
+                                    '"' => text.push('"'),
+                                    ch => Err(LexErr::InvalidStrEscape(ch))?,
+                                },
+                                // All other characters are simply appended to the string
+                                ch => text.push(ch),
+                            },
                         }
                     }
 
@@ -156,7 +165,6 @@ impl<'a> Lexer<'a> {
                     self.next();
 
                     tokens.push(Token::String(text))
-                    
                 }
 
                 // Lex characters as identifier
@@ -166,6 +174,7 @@ impl<'a> Lexer<'a> {
                     // Do as long as a next char exists and it is a valid char for an identifier
                     loop {
                         match self.peek() {
+                            // In the middle of an identifier numbers are also allowed
                             'a'..='z' | 'A'..='Z' | '0'..='9' | '_' => {
                                 ident.push(self.next());
                             }
@@ -173,19 +182,21 @@ impl<'a> Lexer<'a> {
                             _ => break,
                         }
                     }
-
+                    
+                    // Check for pre-defined keywords
                     let token = match ident.as_str() {
                         "loop" => Token::Loop,
                         "print" => Token::Print,
                         "if" => Token::If,
                         "else" => Token::Else,
+
+                        // If it doesn't match a keyword, it is a normal identifier
                         _ => Token::Ident(ident),
                     };
 
                     tokens.push(token);
                 }
 
-                //TODO: Don't panic, keep calm
                 ch => Err(LexErr::UnexpectedChar(ch))?,
             }
         }
@@ -202,14 +213,6 @@ impl<'a> Lexer<'a> {
     fn peek(&mut self) -> char {
         self.code.peek().copied().unwrap_or('\0')
     }
-}
-
-/// Lex the provided code into a Token Buffer
-///
-/// TODO: Don't panic and implement error handling using Result
-pub fn lex(code: &str) -> Result<Vec<Token>, LexErr> {
-    let mut lexer = Lexer::new(code);
-    lexer.lex()
 }
 
 #[cfg(test)]
