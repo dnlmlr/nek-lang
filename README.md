@@ -5,7 +5,6 @@
 - [x] Lexer: Transforms text into Tokens
 - [x] Parser: Transforms Tokens into Abstract Syntax Tree
 - [x] Interpreter (tree-walk-interpreter): Walks the tree and evaluates the expressions / statements
-- [ ] Abstract Syntax Tree Optimizer
 
 ## Language features
 
@@ -37,16 +36,16 @@
   - [x] Declaration
   - [x] Assignment
 - [x] Statements with semicolon & Multiline programs
-- [ ] Control flow
+- [x] Control flow
   - [x] While loop `while X { ... }`
-  - [ ] If else statement `if X { ... } else { ... }`
-    - [ ] If Statement
-    - [ ] Else statement
+  - [x] If else statement `if X { ... } else { ... }`
+    - [x] If Statement
+    - [x] Else statement
 - [x] Line comments `//`
 - [ ] Strings
 - [ ] IO Intrinsics
   - [x] Print
-  - [ ] ReadLine
+  - [ ] ReadInt
 
 ## Grammar
 
@@ -66,6 +65,7 @@ expr = expr_bor
 
 ### Statements
 ```
+stmt_if = "if" expr "{" stmt* "}" ("else" "{" stmt* "}")?
 stmt_loop = "loop" expr (";" expr)? "{" stmt* "}"
 stmt_expr = expr ";"
 stmt = stmt_expr | stmt_loop
