@@ -77,6 +77,9 @@ pub enum Token {
     /// Tilde (~)
     Tilde,
 
+    /// Logical not (!)
+    LNot,
+
     /// Left angle bracket (<)
     LAngle,
 

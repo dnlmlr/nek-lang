@@ -57,6 +57,7 @@ Supported mathematical operations:
 The logical operators evaluate the operands as `false` if they are equal to `0` and `true` if they are not equal to `0`
 - And `a && b`
 - Or `a || b`
+- Not `!a`
 
 ### Equality & Relational Operators
 The equality and relational operations result in `1` if the condition is evaluated as `true` and in `0` if the condition is evaluated as `false`.
@@ -148,8 +149,7 @@ Line comments can be initiated by using `//`
     - [x] Subtraction `a - b`
     - [x] Multiplication `a * b`
     - [x] Division `a / b`
-    - [x] Modulo `a % b`
-  - [x] Unary operators
+    - [x] Modulo `a % b
     - [x] Negate `-a`
   - [x] Parentheses `(a + b) * c`
   - [x] Logical boolean operators
@@ -162,6 +162,7 @@ Line comments can be initiated by using `//`
   - [x] Logical operators
     - [x] And `a && b`
     - [x] Or `a || b`
+    - [x] Not `!a`
   - [x] Bitwise operators
     - [x] Bitwise AND `a & b`
     - [x] Bitwise OR `a | b`

@@ -202,9 +202,16 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Expression::UnOp(UnOpType::Negate, operand.into())
             }
 
+            // Unary bitwise not (bitflip)
             Token::Tilde => {
                 let operand = self.parse_primary();
                 Expression::UnOp(UnOpType::BNot, operand.into())
+            }
+            
+            // Unary logical not
+            Token::LNot => {
+                let operand = self.parse_primary();
+                Expression::UnOp(UnOpType::LNot, operand.into())
             }
 
             tok => panic!("Error parsing primary expr: Unexpected Token '{:?}'", tok),

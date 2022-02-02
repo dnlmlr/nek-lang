@@ -69,6 +69,9 @@ pub enum UnOpType {
 
     /// Bitwise Not
     BNot,
+
+    /// Logical Not
+    LNot,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]

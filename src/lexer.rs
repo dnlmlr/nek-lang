@@ -80,6 +80,7 @@ impl<'a> Lexer<'a> {
                 '=' => tokens.push(Token::Equ),
                 '{' => tokens.push(Token::LBraces),
                 '}' => tokens.push(Token::RBraces),
+                '!' => tokens.push(Token::LNot),
 
                 // Lex numbers
                 ch @ '0'..='9' => {
