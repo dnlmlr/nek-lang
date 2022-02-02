@@ -62,6 +62,12 @@ pub enum Token {
     /// Circumflex (^)
     BXor,
 
+    /// Logical AND (&&)
+    LAnd,
+
+    /// Logical OR (||)
+    LOr,
+
     /// Shift Left (<<)
     Shl,
 
@@ -109,6 +115,9 @@ impl Token {
             Token::BAnd => BinOpType::BAnd,
             Token::BOr => BinOpType::BOr,
             Token::BXor => BinOpType::BXor,
+
+            Token::LAnd => BinOpType::LAnd,
+            Token::LOr => BinOpType::LOr,
 
             Token::Shl => BinOpType::Shl,
             Token::Shr => BinOpType::Shr,

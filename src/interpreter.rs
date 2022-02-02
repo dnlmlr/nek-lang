@@ -128,6 +128,8 @@ impl Interpreter {
                 BinOpType::BOr => Value::I64(lhs | rhs),
                 BinOpType::BAnd => Value::I64(lhs & rhs),
                 BinOpType::BXor => Value::I64(lhs ^ rhs),
+                BinOpType::LAnd => Value::I64(if (lhs != 0) && (rhs != 0) { 1 } else { 0 }),
+                BinOpType::LOr => Value::I64(if (lhs != 0) || (rhs != 0) { 1 } else { 0 }),
                 BinOpType::Shr => Value::I64(lhs >> rhs),
                 BinOpType::Shl => Value::I64(lhs << rhs),
                 BinOpType::EquEqu => Value::I64(if lhs == rhs { 1 } else { 0 }),

@@ -239,14 +239,16 @@ impl BinOpType {
         match self {
             BinOpType::Declare => 0,
             BinOpType::Assign => 1,
-            BinOpType::BOr => 2,
-            BinOpType::BXor => 3,
-            BinOpType::BAnd => 4,
-            BinOpType::EquEqu | BinOpType::NotEqu => 5,
-            BinOpType::Less | BinOpType::LessEqu | BinOpType::Greater | BinOpType::GreaterEqu => 6,
-            BinOpType::Shl | BinOpType::Shr => 7,
-            BinOpType::Add | BinOpType::Sub => 8,
-            BinOpType::Mul | BinOpType::Div | BinOpType::Mod => 9,
+            BinOpType::LOr => 2,
+            BinOpType::LAnd => 3,
+            BinOpType::BOr => 4,
+            BinOpType::BXor => 5,
+            BinOpType::BAnd => 6,
+            BinOpType::EquEqu | BinOpType::NotEqu => 7,
+            BinOpType::Less | BinOpType::LessEqu | BinOpType::Greater | BinOpType::GreaterEqu => 8,
+            BinOpType::Shl | BinOpType::Shr => 9,
+            BinOpType::Add | BinOpType::Sub => 10,
+            BinOpType::Mul | BinOpType::Div | BinOpType::Mod => 11,
         }
     }
 }

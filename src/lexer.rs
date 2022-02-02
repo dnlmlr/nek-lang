@@ -51,6 +51,15 @@ impl<'a> Lexer<'a> {
                     self.next();
                     tokens.push(Token::LArrow);
                 }
+                '&' if matches!(self.peek(), '&') => {
+                    self.next();
+                    tokens.push(Token::LAnd);
+                }
+                '|' if matches!(self.peek(), '|') => {
+                    self.next();
+                    tokens.push(Token::LOr);
+                }
+
                 // Line comment. Consume every char until linefeed (next line)
                 '/' if matches!(self.peek(), '/') => while self.next() != '\n' {},
 

@@ -43,6 +43,12 @@ pub enum BinOpType {
     /// Bitwise Xor (exclusive or)
     BXor,
 
+    /// Logical And
+    LAnd,
+
+    /// Logical Or
+    LOr,
+
     /// Shift Left
     Shl,
 
