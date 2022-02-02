@@ -180,15 +180,15 @@ Line comments can be initiated by using `//`
     - [x] If Statement
     - [x] Else statement
 - [x] Line comments `//`
-- [ ] Strings
-- [ ] IO Intrinsics
+- [x] Strings
+- [x] IO Intrinsics
   - [x] Print
-  - [ ] ReadInt
 
 ## Grammar
 
 ### Expressions
 ```
+LITERAL = I64_LITERAL | STR_LITERAL
 expr_primary = LITERAL | IDENT | "(" expr ")" | "-" expr_primary | "~" expr_primary
 expr_mul = expr_primary (("*" | "/" | "%") expr_primary)*
 expr_add = expr_mul (("+" | "-") expr_mul)*
