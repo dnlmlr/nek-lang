@@ -10,7 +10,11 @@ pub enum Token {
     /// Identifier (name for variables, functions, ...)
     Ident(String),
 
+    /// Loop keyword (loop)
     Loop,
+
+    /// Print keyword (print)
+    Print,
 
     /// Left Parenthesis ('(')
     LParen,
@@ -199,6 +203,7 @@ impl<'a> Lexer<'a> {
 
                     let token = match ident.as_str() {
                         "loop" => Token::Loop,
+                        "print" => Token::Print,
                         _ => Token::Ident(ident),
                     };
 

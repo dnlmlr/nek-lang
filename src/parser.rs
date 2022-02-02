@@ -95,6 +95,7 @@ pub struct Loop {
 pub enum Statement {
     Expr(Expression),
     Loop(Loop),
+    Print(Expression),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -141,6 +142,19 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     fn parse_stmt(&mut self) -> Statement {
         match self.peek() {
             Token::Loop => Statement::Loop(self.parse_loop()),
+
+            Token::Print => {
+                self.next();
+
+                let expr = self.parse_expr();
+
+                // After a statement, there must be a semicolon
+                if !matches!(self.next(), Token::Semicolon) {
+                    panic!("Expected semicolon after statement");
+                }
+
+                Statement::Print(expr)
+            }
 
             // If it is not a loop, try to lex as an expression
             _ => {

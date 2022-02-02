@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use crate::{parser::{Expression, BinOpType, UnOpType, Ast, Statement, parse}, lexer::lex};
 
@@ -37,8 +37,7 @@ impl Interpreter {
         for stmt in prog.prog {
             match stmt {
                 Statement::Expr(expr) => {
-                    let result = self.resolve_expr(expr);
-                    println!("Result = {:?}", result);
+                    self.resolve_expr(expr);
                 }
 
                 Statement::Loop(lop) => {
@@ -54,6 +53,11 @@ impl Interpreter {
                             self.resolve_expr(adv.clone());
                         }
                     }
+                }
+
+                Statement::Print(expr) => {
+                    let result = self.resolve_expr(expr);
+                    println!("{}", result);
                 }
             }
 
@@ -131,6 +135,15 @@ impl Interpreter {
         }
     }
 }
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::I64(val) => write!(f, "{}", val),
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod test {

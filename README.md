@@ -45,7 +45,7 @@
 - [x] Line comments `//`
 - [ ] Strings
 - [ ] IO Intrinsics
-  - [ ] Print
+  - [x] Print
   - [ ] ReadLine
 
 ## Grammar
