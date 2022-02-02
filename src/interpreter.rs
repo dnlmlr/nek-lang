@@ -30,11 +30,11 @@ impl Interpreter {
             println!("{:#?}", ast);
         }
 
-        self.run(ast);
+        self.run(&ast);
     }
 
-    pub fn run(&mut self, prog: Ast) {
-        for stmt in prog.prog {
+    pub fn run(&mut self, prog: &Ast) {
+        for stmt in &prog.prog {
             match stmt {
                 Statement::Expr(expr) => {
                     self.resolve_expr(expr);
@@ -43,14 +43,14 @@ impl Interpreter {
                 Statement::Loop(looop) => {
                     // loop runs as long condition != 0
                     loop {
-                        if matches!(self.resolve_expr(looop.condition.clone()), Value::I64(0)) {
+                        if matches!(self.resolve_expr(&looop.condition), Value::I64(0)) {
                             break;
                         }
 
-                        self.run(looop.body.clone());
+                        self.run(&looop.body);
 
                         if let Some(adv) = &looop.advancement {
-                            self.resolve_expr(adv.clone());
+                            self.resolve_expr(&adv);
                         }
                     }
                 }
@@ -61,10 +61,10 @@ impl Interpreter {
                 }
 
                 Statement::If(If {condition, body_true, body_false}) => {
-                    if matches!(self.resolve_expr(condition.clone()), Value::I64(0)) {
-                        self.run(body_false.clone());
+                    if matches!(self.resolve_expr(condition), Value::I64(0)) {
+                        self.run(body_false);
                     } else {
-                        self.run(body_true.clone());
+                        self.run(body_true);
                     }
                 }
             }
@@ -72,23 +72,23 @@ impl Interpreter {
         }
     }
 
-    fn resolve_expr(&mut self, expr: Expression) -> Value {
+    fn resolve_expr(&mut self, expr: &Expression) -> Value {
         match expr {
-            Expression::I64(val) => Value::I64(val),
-            Expression::BinOp(bo, lhs, rhs) => self.resolve_binop(bo, *lhs, *rhs),
-            Expression::UnOp(uo, operand) => self.resolve_unop(uo, *operand),
+            Expression::I64(val) => Value::I64(*val),
+            Expression::BinOp(bo, lhs, rhs) => self.resolve_binop(bo, lhs, rhs),
+            Expression::UnOp(uo, operand) => self.resolve_unop(uo, operand),
             Expression::Var(name) => self.resolve_var(name),
         }
     }
 
-    fn resolve_var(&mut self, name: String) -> Value {
-        match self.vartable.get(&name) {
+    fn resolve_var(&mut self, name: &str) -> Value {
+        match self.vartable.get(name) {
             Some(val) => val.clone(),
             None => panic!("Variable '{}' used but not declared", name),
         }
     }
 
-    fn resolve_unop(&mut self, uo: UnOpType, operand: Expression) -> Value {
+    fn resolve_unop(&mut self, uo: &UnOpType, operand: &Expression) -> Value {
         let operand = self.resolve_expr(operand);
 
         match (operand, uo) {
@@ -98,7 +98,7 @@ impl Interpreter {
         }
     }
 
-    fn resolve_binop(&mut self, bo: BinOpType, lhs: Expression, rhs: Expression) -> Value {
+    fn resolve_binop(&mut self, bo: &BinOpType, lhs: &Expression, rhs: &Expression) -> Value {
         let rhs = self.resolve_expr(rhs);
 
         match (&bo, &lhs) {
@@ -176,7 +176,7 @@ mod test {
         let expected = Value::I64(11);
 
         let mut interpreter = Interpreter::new();
-        let actual = interpreter.resolve_expr(ast);
+        let actual = interpreter.resolve_expr(&ast);
 
         assert_eq!(expected, actual);
     }
