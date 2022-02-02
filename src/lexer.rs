@@ -16,6 +16,12 @@ pub enum Token {
     /// Print keyword (print)
     Print,
 
+    /// If keyword (if)
+    If,
+
+    /// Else keyword (else)
+    Else,
+
     /// Left Parenthesis ('(')
     LParen,
 
@@ -204,6 +210,8 @@ impl<'a> Lexer<'a> {
                     let token = match ident.as_str() {
                         "loop" => Token::Loop,
                         "print" => Token::Print,
+                        "if" => Token::If,
+                        "else" => Token::Else,
                         _ => Token::Ident(ident),
                     };
 

@@ -92,13 +92,24 @@ pub struct Loop {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Statement {
-    Expr(Expression),
-    Loop(Loop),
-    Print(Expression),
+pub struct If {
+    /// The condition
+    pub condition: Expression,
+    /// The body that is executed when condition is true
+    pub body_true: Ast,
+    /// The if body that is executed when the condition is false
+    pub body_false: Ast,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Statement {
+    Expr(Expression),
+    Loop(Loop),
+    If(If),
+    Print(Expression),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct Ast {
     pub prog: Vec<Statement>
 }
@@ -124,7 +135,6 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 }
                 Token::EoF => break,
                 Token::RBraces => {
-                    self.next();
                     break;
                 }
 
@@ -156,6 +166,8 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Statement::Print(expr)
             }
 
+            Token::If => Statement::If(self.parse_if()),
+
             // If it is not a loop, try to lex as an expression
             _ => {
                 let stmt = Statement::Expr(self.parse_expr());
@@ -170,11 +182,41 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    // loop i < 1_000; i = i +1 {
-    //     if i % 3 == 0 | i % 5 == 0 {
-    //         sum = sum + i;
-    //     }
-    // }
+    fn parse_if(&mut self) -> If {
+        if !matches!(self.next(), Token::If) {
+            panic!("Error lexing if: Expected if token");
+        }
+
+        let condition = self.parse_expr();
+
+        if !matches!(self.next(), Token::LBraces) {
+            panic!("Error lexing if: Expected '{{'")
+        }
+
+        let body_true = self.parse();
+
+        if !matches!(self.next(), Token::RBraces) {
+            panic!("Error lexing if: Expected '}}'")
+        }
+
+        let mut body_false = Ast::default();
+
+        if matches!(self.peek(), Token::Else) {
+            self.next();
+
+            if !matches!(self.next(), Token::LBraces) {
+                panic!("Error lexing if: Expected '{{'")
+            }
+
+            body_false = self.parse();
+            
+            if !matches!(self.next(), Token::RBraces) {
+                panic!("Error lexing if: Expected '}}'")
+            }
+        }
+
+        If { condition, body_true, body_false }
+    }
 
     fn parse_loop(&mut self) -> Loop {
         if !matches!(self.next(), Token::Loop) {
@@ -202,6 +244,10 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             },
 
             _ => panic!("Error lexing loop: Expected ';' or '{{'")
+        }
+
+        if !matches!(self.next(), Token::RBraces) {
+            panic!("Error lexing loop: Expected '}}'")
         }
 
         Loop { condition, advancement, body }

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Display};
 
-use crate::{parser::{Expression, BinOpType, UnOpType, Ast, Statement, parse}, lexer::lex};
+use crate::{parser::{Expression, BinOpType, UnOpType, Ast, Statement, parse, If}, lexer::lex};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value {
@@ -40,16 +40,16 @@ impl Interpreter {
                     self.resolve_expr(expr);
                 }
 
-                Statement::Loop(lop) => {
+                Statement::Loop(looop) => {
                     // loop runs as long condition != 0
                     loop {
-                        if matches!(self.resolve_expr(lop.condition.clone()), Value::I64(0)) {
+                        if matches!(self.resolve_expr(looop.condition.clone()), Value::I64(0)) {
                             break;
                         }
 
-                        self.run(lop.body.clone());
+                        self.run(looop.body.clone());
 
-                        if let Some(adv) = &lop.advancement {
+                        if let Some(adv) = &looop.advancement {
                             self.resolve_expr(adv.clone());
                         }
                     }
@@ -58,6 +58,14 @@ impl Interpreter {
                 Statement::Print(expr) => {
                     let result = self.resolve_expr(expr);
                     println!("{}", result);
+                }
+
+                Statement::If(If {condition, body_true, body_false}) => {
+                    if matches!(self.resolve_expr(condition.clone()), Value::I64(0)) {
+                        self.run(body_false.clone());
+                    } else {
+                        self.run(body_true.clone());
+                    }
                 }
             }
 
