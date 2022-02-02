@@ -1,6 +1,22 @@
 use std::{iter::Peekable, str::Chars};
-
+use anyhow::Result;
+use thiserror::Error;
 use crate::token::Token;
+
+#[derive(Debug, Error)]
+pub enum LexErr {
+    #[error("Failed to parse '{0}' as i64")]
+    NumericParse(String),
+
+    #[error("Invalid escape character '\\{0}'")]
+    InvalidStrEscape(char),
+
+    #[error("Lexer encountered unexpected char: '{0}'")]
+    UnexpectedChar(char),
+
+    #[error("Missing closing string quote '\"'")]
+    MissingClosingString
+}
 
 struct Lexer<'a> {
     code: Peekable<Chars<'a>>,
@@ -12,7 +28,7 @@ impl<'a> Lexer<'a> {
         Self { code }
     }
 
-    fn lex(&mut self) -> Vec<Token> {
+    fn lex(&mut self) -> Result<Vec<Token>, LexErr> {
         let mut tokens = Vec::new();
 
         loop {
@@ -103,9 +119,11 @@ impl<'a> Lexer<'a> {
                     }
 
                     // TODO: We only added numeric chars to the string, but the conversion could still fail
-                    tokens.push(Token::I64(sval.parse().unwrap()));
+                    let i64val = sval.parse().map_err(|_| LexErr::NumericParse(sval))?;
+                    tokens.push(Token::I64(i64val));
                 }
 
+                // Lex a string
                 '"' => {
                     // Opening " was consumed in match
 
@@ -114,7 +132,7 @@ impl<'a> Lexer<'a> {
                     loop {
                         match self.peek() {
                             '"' => break,
-                            '\0' => panic!("Encountered EoF while lexing string. Missing closing '\"'"),
+                            '\0' => Err(LexErr::MissingClosingString)?,
                             _ => {
 
                                 match self.next() {
@@ -125,7 +143,7 @@ impl<'a> Lexer<'a> {
                                             't' => text.push('\t'),
                                             '\\' => text.push('\\'),
                                             '"' => text.push('"'),
-                                            ch => panic!("Invalid backslash escape: '{}'", ch),
+                                            ch => Err(LexErr::InvalidStrEscape(ch))?,
                                         }
                                     }
                                     ch => text.push(ch),
@@ -168,11 +186,11 @@ impl<'a> Lexer<'a> {
                 }
 
                 //TODO: Don't panic, keep calm
-                ch => panic!("Lexer encountered unexpected char: '{}'", ch),
+                ch => Err(LexErr::UnexpectedChar(ch))?,
             }
         }
 
-        tokens
+        Ok(tokens)
     }
 
     /// Advance to next character and return the removed char
@@ -189,7 +207,7 @@ impl<'a> Lexer<'a> {
 /// Lex the provided code into a Token Buffer
 ///
 /// TODO: Don't panic and implement error handling using Result
-pub fn lex(code: &str) -> Vec<Token> {
+pub fn lex(code: &str) -> Result<Vec<Token>, LexErr> {
     let mut lexer = Lexer::new(code);
     lexer.lex()
 }
@@ -223,7 +241,7 @@ mod tests {
             Token::Shr,
         ];
 
-        let actual = lex(code);
+        let actual = lex(code).unwrap();
         assert_eq!(expected, actual);
     }
 }

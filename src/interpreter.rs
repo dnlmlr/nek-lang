@@ -21,7 +21,7 @@ impl Interpreter {
     }
 
     pub fn run_str(&mut self, code: &str, print_tokens: bool, print_ast: bool) {
-        let tokens = lex(code);
+        let tokens = lex(code).unwrap();
         if print_tokens {
             println!("Tokens: {:?}", tokens);
         }
