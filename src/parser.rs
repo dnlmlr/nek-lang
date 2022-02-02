@@ -1,6 +1,6 @@
 use std::iter::Peekable;
 
-use crate::lexer::Token;
+use crate::token::Token;
 
 /// Types for binary operators
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -365,7 +365,7 @@ impl BinOpType {
 #[cfg(test)]
 mod tests {
     use super::{parse, Expression, BinOpType};
-    use crate::{lexer::Token, parser::{Statement, Ast}};
+    use crate::{token::Token, parser::{Statement, Ast}};
 
     #[test]
     fn test_parser() {
