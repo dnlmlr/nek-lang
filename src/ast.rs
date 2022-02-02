@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 /// Types for binary operators
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum BinOpType {
@@ -78,6 +80,8 @@ pub enum UnOpType {
 pub enum Expression {
     /// Integer literal (64-bit)
     I64(i64),
+    /// String literal
+    String(Rc<String>),
     /// Variable
     Var(String),
     /// Binary operation. Consists of type, left hand side and right hand side

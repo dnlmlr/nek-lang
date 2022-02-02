@@ -182,6 +182,9 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             // Literal i64
             Token::I64(val) => Expression::I64(val),
 
+            // Literal String
+            Token::String(text) => Expression::String(text.into()),
+
             Token::Ident(name) => Expression::Var(name),
 
             // Parentheses grouping

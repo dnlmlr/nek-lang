@@ -1,10 +1,11 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::{ast::{Expression, BinOpType, UnOpType, Ast, Statement, If}, parser::parse, lexer::lex};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value {
     I64(i64),
+    String(Rc<String>),
 }
 
 pub struct Interpreter {
@@ -57,7 +58,7 @@ impl Interpreter {
 
                 Statement::Print(expr) => {
                     let result = self.resolve_expr(expr);
-                    println!("{}", result);
+                    print!("{}", result);
                 }
 
                 Statement::If(If {condition, body_true, body_false}) => {
@@ -75,6 +76,7 @@ impl Interpreter {
     fn resolve_expr(&mut self, expr: &Expression) -> Value {
         match expr {
             Expression::I64(val) => Value::I64(*val),
+            Expression::String(text) => Value::String(text.clone()),
             Expression::BinOp(bo, lhs, rhs) => self.resolve_binop(bo, lhs, rhs),
             Expression::UnOp(uo, operand) => self.resolve_unop(uo, operand),
             Expression::Var(name) => self.resolve_var(name),
@@ -95,7 +97,7 @@ impl Interpreter {
             (Value::I64(val), UnOpType::Negate) => Value::I64(-val),
             (Value::I64(val), UnOpType::BNot) => Value::I64(!val),
             (Value::I64(val), UnOpType::LNot) => Value::I64(if val == 0 { 1 } else { 0 }),
-            // _ => panic!("Value type is not compatible with unary operation"),
+            _ => panic!("Value type is not compatible with unary operation"),
         }
     }
 
@@ -142,7 +144,7 @@ impl Interpreter {
 
                 BinOpType::Declare | BinOpType::Assign => unreachable!(),
             },
-            // _ => panic!("Value types are not compatible"),
+            _ => panic!("Value types are not compatible"),
         }
     }
 }
@@ -151,6 +153,7 @@ impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::I64(val) => write!(f, "{}", val),
+            Value::String(text) => write!(f, "{}", text),
         }
     }
 }

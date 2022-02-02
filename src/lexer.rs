@@ -106,6 +106,41 @@ impl<'a> Lexer<'a> {
                     tokens.push(Token::I64(sval.parse().unwrap()));
                 }
 
+                '"' => {
+                    // Opening " was consumed in match
+
+                    let mut text = String::new();
+
+                    loop {
+                        match self.peek() {
+                            '"' => break,
+                            '\0' => panic!("Encountered EoF while lexing string. Missing closing '\"'"),
+                            _ => {
+
+                                match self.next() {
+                                    '\\' => {
+                                        match self.next() {
+                                            'n' => text.push('\n'),
+                                            'r' => text.push('\r'),
+                                            't' => text.push('\t'),
+                                            '\\' => text.push('\\'),
+                                            '"' => text.push('"'),
+                                            ch => panic!("Invalid backslash escape: '{}'", ch),
+                                        }
+                                    }
+                                    ch => text.push(ch),
+                                }
+                            }
+                        }
+                    }
+
+                    // Consume closing "
+                    self.next();
+
+                    tokens.push(Token::String(text))
+                    
+                }
+
                 // Lex characters as identifier
                 ch @ ('a'..='z' | 'A'..='Z' | '_') => {
                     let mut ident = String::from(ch);

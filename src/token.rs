@@ -5,6 +5,9 @@ pub enum Token {
     /// Integer literal (64-bit)
     I64(i64),
 
+    /// String literal
+    String(String),
+
     /// Identifier (name for variables, functions, ...)
     Ident(String),
 
