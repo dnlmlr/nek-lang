@@ -1,4 +1,4 @@
-use crate::parser::BinOpType;
+use crate::ast::BinOpType;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {

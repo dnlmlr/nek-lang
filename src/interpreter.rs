@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Display};
 
-use crate::{parser::{Expression, BinOpType, UnOpType, Ast, Statement, parse, If}, lexer::lex};
+use crate::{ast::{Expression, BinOpType, UnOpType, Ast, Statement, If}, parser::parse, lexer::lex};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value {
@@ -156,7 +156,7 @@ impl Display for Value {
 #[cfg(test)]
 mod test {
     use super::{Interpreter, Value};
-    use crate::parser::{Expression, BinOpType};
+    use crate::ast::{Expression, BinOpType};
 
     #[test]
     fn test_interpreter_expr() {
