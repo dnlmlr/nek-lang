@@ -1,15 +1,13 @@
-use std::{fmt::Display, rc::Rc};
-
 use crate::{
     ast::{BlockScope, BinOpType, Expression, If, Statement, UnOpType},
     lexer::lex,
-    parser::parse,
+    parser::parse, stringstore::{Sid, StringStore},
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value {
     I64(i64),
-    String(Rc<String>),
+    String(Sid),
 }
 
 #[derive(Default)]
@@ -17,7 +15,9 @@ pub struct Interpreter {
     capture_output: bool,
     output: Vec<Value>,
     // Variable table stores the runtime values of variables
-    vartable: Vec<(String, Value)>,
+    vartable: Vec<(Sid, Value)>,
+
+    stringstore: StringStore,
 }
 
 impl Interpreter {
@@ -33,7 +33,7 @@ impl Interpreter {
         &self.output
     }
 
-    fn get_var(&self, name: &str) -> Option<Value> {
+    fn get_var(&self, name: Sid) -> Option<Value> {
         self.vartable
             .iter()
             .rev()
@@ -41,7 +41,7 @@ impl Interpreter {
             .map(|it| it.1.clone())
     }
 
-    fn get_var_mut(&mut self, name: &str) -> Option<&mut Value> {
+    fn get_var_mut(&mut self, name: Sid) -> Option<&mut Value> {
         self.vartable
             .iter_mut()
             .rev()
@@ -57,13 +57,15 @@ impl Interpreter {
 
         let ast = parse(tokens);
         if print_ast {
-            println!("{:#?}", ast);
+            println!("{:#?}", ast.main);
         }
 
-        self.run(&ast);
+        self.stringstore = ast.stringstore;
+
+        self.run_block(&ast.main);
     }
 
-    pub fn run(&mut self, prog: &BlockScope) {
+    pub fn run_block(&mut self, prog: &BlockScope) {
         let vartable_len = self.vartable.len();
         for stmt in prog {
             match stmt {
@@ -78,7 +80,7 @@ impl Interpreter {
                             break;
                         }
 
-                        self.run(&looop.body);
+                        self.run_block(&looop.body);
 
                         if let Some(adv) = &looop.advancement {
                             self.resolve_expr(&adv);
@@ -92,7 +94,7 @@ impl Interpreter {
                     if self.capture_output {
                         self.output.push(result)
                     } else {
-                        print!("{}", result);
+                        self.print_value(&result);
                     }
                 }
 
@@ -102,9 +104,9 @@ impl Interpreter {
                     body_false,
                 }) => {
                     if matches!(self.resolve_expr(condition), Value::I64(0)) {
-                        self.run(body_false);
+                        self.run_block(body_false);
                     } else {
-                        self.run(body_true);
+                        self.run_block(body_true);
                     }
                 }
             }
@@ -119,14 +121,14 @@ impl Interpreter {
             Expression::String(text) => Value::String(text.clone()),
             Expression::BinOp(bo, lhs, rhs) => self.resolve_binop(bo, lhs, rhs),
             Expression::UnOp(uo, operand) => self.resolve_unop(uo, operand),
-            Expression::Var(name) => self.resolve_var(name),
+            Expression::Var(name) => self.resolve_var(*name),
         }
     }
 
-    fn resolve_var(&mut self, name: &str) -> Value {
+    fn resolve_var(&mut self, name: Sid) -> Value {
         match self.get_var(name) {
             Some(val) => val.clone(),
-            None => panic!("Variable '{}' used but not declared", name),
+            None => panic!("Variable '{}' used but not declared", self.stringstore.lookup(name).unwrap()),
         }
     }
 
@@ -150,7 +152,7 @@ impl Interpreter {
                 return rhs;
             }
             (BinOpType::Assign, Expression::Var(name)) => {
-                match self.get_var_mut(name) {
+                match self.get_var_mut(*name) {
                     Some(val) => *val = rhs.clone(),
                     None => panic!("Runtime Error: Trying to assign value to undeclared variable"),
                 }
@@ -187,15 +189,14 @@ impl Interpreter {
             _ => panic!("Value types are not compatible"),
         }
     }
-}
 
-impl Display for Value {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Value::I64(val) => write!(f, "{}", val),
-            Value::String(text) => write!(f, "{}", text),
+    fn print_value(&self, val: &Value) {
+        match val {
+            Value::I64(val) => print!("{}", val),
+            Value::String(text) => print!("{}", self.stringstore.lookup(*text).unwrap()),
         }
     }
+
 }
 
 #[cfg(test)]

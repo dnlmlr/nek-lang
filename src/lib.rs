@@ -3,6 +3,7 @@ pub mod interpreter;
 pub mod lexer;
 pub mod parser;
 pub mod token;
+pub mod stringstore;
 
 #[cfg(test)]
 mod tests {
@@ -94,3 +95,4 @@ mod tests {
         assert_eq!(interpreter.output(), &expected_output);
     }
 }
+

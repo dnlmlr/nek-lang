@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use crate::stringstore::{StringStore, Sid};
 
 /// Types for binary operators
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -81,9 +81,9 @@ pub enum Expression {
     /// Integer literal (64-bit)
     I64(i64),
     /// String literal
-    String(Rc<String>),
+    String(Sid),
     /// Variable
-    Var(String),
+    Var(Sid),
     /// Binary operation. Consists of type, left hand side and right hand side
     BinOp(BinOpType, Box<Expression>, Box<Expression>),
     /// Unary operation. Consists of type and operand
@@ -119,6 +119,12 @@ pub enum Statement {
 }
 
 pub type BlockScope = Vec<Statement>;
+
+#[derive(Clone, Default)]
+pub struct Ast {
+    pub stringstore: StringStore,
+    pub main: BlockScope,
+}
 
 impl BinOpType {
     /// Get the precedence for a binary operator. Higher value means the OP is stronger binding.

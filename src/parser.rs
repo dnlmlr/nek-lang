@@ -1,28 +1,42 @@
 use std::iter::Peekable;
 
 use crate::ast::*;
+use crate::stringstore::StringStore;
 use crate::token::Token;
 
 /// Parse the given tokens into an abstract syntax tree
-pub fn parse<T: Iterator<Item = Token>, A: IntoIterator<IntoIter = T>>(tokens: A) -> BlockScope {
-    let mut parser = Parser::new(tokens);
+pub fn parse<T: Iterator<Item = Token>, A: IntoIterator<IntoIter = T>>(tokens: A) -> Ast {
+    let parser = Parser::new(tokens);
     parser.parse()
 }
 
 struct Parser<T: Iterator<Item = Token>> {
     tokens: Peekable<T>,
+    stringstore: StringStore,
 }
 
 impl<T: Iterator<Item = Token>> Parser<T> {
     /// Create a new parser to parse the given Token Stream
-    fn new<A: IntoIterator<IntoIter = T>>(tokens: A) -> Self {
+    pub fn new<A: IntoIterator<IntoIter = T>>(tokens: A) -> Self {
         let tokens = tokens.into_iter().peekable();
-        Self { tokens }
+        let stringstore = StringStore::new();
+        Self {
+            tokens,
+            stringstore,
+        }
+    }
+
+    pub fn parse(mut self) -> Ast {
+        let main = self.parse_scoped_block();
+        Ast {
+            main,
+            stringstore: self.stringstore,
+        }
     }
 
     /// Parse tokens into an abstract syntax tree. This will continuously parse statements until
     /// encountering end-of-file or a block end '}' .
-    fn parse(&mut self) -> BlockScope {
+    fn parse_scoped_block(&mut self) -> BlockScope {
         let mut prog = Vec::new();
 
         loop {
@@ -86,7 +100,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             panic!("Error lexing if: Expected '{{'")
         }
 
-        let body_true = self.parse();
+        let body_true = self.parse_scoped_block();
 
         if !matches!(self.next(), Token::RBraces) {
             panic!("Error lexing if: Expected '}}'")
@@ -101,7 +115,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 panic!("Error lexing if: Expected '{{'")
             }
 
-            body_false = self.parse();
+            body_false = self.parse_scoped_block();
 
             if !matches!(self.next(), Token::RBraces) {
                 panic!("Error lexing if: Expected '}}'")
@@ -128,7 +142,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         match self.next() {
             Token::LBraces => {
-                body = self.parse();
+                body = self.parse_scoped_block();
             }
 
             Token::Semicolon => {
@@ -138,7 +152,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                     panic!("Error lexing loop: Expected '{{'")
                 }
 
-                body = self.parse();
+                body = self.parse_scoped_block();
             }
 
             _ => panic!("Error lexing loop: Expected ';' or '{{'"),
@@ -196,9 +210,9 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             Token::I64(val) => Expression::I64(val),
 
             // Literal String
-            Token::String(text) => Expression::String(text.into()),
+            Token::String(text) => Expression::String(self.stringstore.intern_or_lookup(&text)),
 
-            Token::Ident(name) => Expression::Var(name),
+            Token::Ident(name) => Expression::Var(self.stringstore.intern_or_lookup(&name)),
 
             // Parentheses grouping
             Token::LParen => {
@@ -248,10 +262,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 #[cfg(test)]
 mod tests {
     use super::{parse, BinOpType, Expression};
-    use crate::{
-        parser::Statement,
-        token::Token,
-    };
+    use crate::{parser::Statement, token::Token};
 
     #[test]
     fn test_parser() {
@@ -287,6 +298,6 @@ mod tests {
         let expected = vec![expected];
 
         let actual = parse(tokens);
-        assert_eq!(expected, actual);
+        assert_eq!(expected, actual.main);
     }
 }
