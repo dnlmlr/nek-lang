@@ -107,101 +107,113 @@ impl<'a> Lexer<'a> {
                 '}' => tokens.push(Token::RBraces),
                 '!' => tokens.push(Token::LNot),
 
-                // Lex numbers
-                ch @ '0'..='9' => {
-                    // String representation of the integer value
-                    let mut sval = String::from(ch);
+                // Special tokens with variable length
 
-                    // Do as long as a next char exists and it is a numeric char
-                    loop {
-                        // The next char is verified to be Some, so unwrap is safe
-                        match self.peek() {
-                            // Underscore is a separator, so remove it but don't add to number
-                            '_' => {
-                                self.next();
-                            }
-                            '0'..='9' => {
-                                sval.push(self.next());
-                            }
-                            // Next char is not a number, so stop and finish the number token
-                            _ => break,
-                        }
-                    }
+                // Lex multiple characters together as numbers
+                ch @ '0'..='9' => tokens.push(self.lex_number(ch)?),
 
-                    // Try to convert the string representation of the value to i64
-                    let i64val = sval.parse().map_err(|_| LexErr::NumericParse(sval))?;
-                    tokens.push(Token::I64(i64val));
-                }
+                // Lex multiple characters together as a string
+                '"' => tokens.push(self.lex_str()?),
 
-                // Lex a string
-                '"' => {
-                    // Opening " was consumed in match
-
-                    let mut text = String::new();
-
-                    // Read all chars until encountering the closing "
-                    loop {
-                        match self.peek() {
-                            '"' => break,
-                            // If the end of file is reached while still waiting for '"', error out
-                            '\0' => Err(LexErr::MissingClosingString)?,
-                            _ => match self.next() {
-                                // Backshlash indicates an escaped character 
-                                '\\' => match self.next() {
-                                    'n' => text.push('\n'),
-                                    'r' => text.push('\r'),
-                                    't' => text.push('\t'),
-                                    '\\' => text.push('\\'),
-                                    '"' => text.push('"'),
-                                    ch => Err(LexErr::InvalidStrEscape(ch))?,
-                                },
-                                // All other characters are simply appended to the string
-                                ch => text.push(ch),
-                            },
-                        }
-                    }
-
-                    // Consume closing "
-                    self.next();
-
-                    tokens.push(Token::String(text))
-                }
-
-                // Lex characters as identifier
-                ch @ ('a'..='z' | 'A'..='Z' | '_') => {
-                    let mut ident = String::from(ch);
-
-                    // Do as long as a next char exists and it is a valid char for an identifier
-                    loop {
-                        match self.peek() {
-                            // In the middle of an identifier numbers are also allowed
-                            'a'..='z' | 'A'..='Z' | '0'..='9' | '_' => {
-                                ident.push(self.next());
-                            }
-                            // Next char is not valid, so stop and finish the ident token
-                            _ => break,
-                        }
-                    }
-                    
-                    // Check for pre-defined keywords
-                    let token = match ident.as_str() {
-                        "loop" => Token::Loop,
-                        "print" => Token::Print,
-                        "if" => Token::If,
-                        "else" => Token::Else,
-
-                        // If it doesn't match a keyword, it is a normal identifier
-                        _ => Token::Ident(ident),
-                    };
-
-                    tokens.push(token);
-                }
+                // Lex multiple characters together as identifier
+                ch @ ('a'..='z' | 'A'..='Z' | '_') => tokens.push(self.lex_identifier(ch)?),
 
                 ch => Err(LexErr::UnexpectedChar(ch))?,
             }
         }
 
         Ok(tokens)
+    }
+
+    /// Lex multiple characters as a number until encountering a non numeric digit. This includes
+    /// the first character 
+    fn lex_number(&mut self, first_char: char) -> Result<Token, LexErr> {
+        // String representation of the integer value
+        let mut sval = String::from(first_char);
+
+        // Do as long as a next char exists and it is a numeric char
+        loop {
+            // The next char is verified to be Some, so unwrap is safe
+            match self.peek() {
+                // Underscore is a separator, so remove it but don't add to number
+                '_' => {
+                    self.next();
+                }
+                '0'..='9' => {
+                    sval.push(self.next());
+                }
+                // Next char is not a number, so stop and finish the number token
+                _ => break,
+            }
+        }
+
+        // Try to convert the string representation of the value to i64
+        let i64val = sval.parse().map_err(|_| LexErr::NumericParse(sval))?;
+        Ok(Token::I64(i64val))
+    }
+
+    /// Lex characters as a string until encountering an unescaped closing doublequoute char '"'
+    fn lex_str(&mut self) -> Result<Token, LexErr> {
+        // Opening " was consumed in match
+
+        let mut text = String::new();
+
+        // Read all chars until encountering the closing "
+        loop {
+            match self.peek() {
+                '"' => break,
+                // If the end of file is reached while still waiting for '"', error out
+                '\0' => Err(LexErr::MissingClosingString)?,
+                _ => match self.next() {
+                    // Backshlash indicates an escaped character
+                    '\\' => match self.next() {
+                        'n' => text.push('\n'),
+                        'r' => text.push('\r'),
+                        't' => text.push('\t'),
+                        '\\' => text.push('\\'),
+                        '"' => text.push('"'),
+                        ch => Err(LexErr::InvalidStrEscape(ch))?,
+                    },
+                    // All other characters are simply appended to the string
+                    ch => text.push(ch),
+                },
+            }
+        }
+
+        // Consume closing "
+        self.next();
+
+        Ok(Token::String(text))
+    }
+
+    /// Lex characters from the text as an identifier. This includes the first character passed in
+    fn lex_identifier(&mut self, first_char: char) -> Result<Token, LexErr> {
+        let mut ident = String::from(first_char);
+
+        // Do as long as a next char exists and it is a valid char for an identifier
+        loop {
+            match self.peek() {
+                // In the middle of an identifier numbers are also allowed
+                'a'..='z' | 'A'..='Z' | '0'..='9' | '_' => {
+                    ident.push(self.next());
+                }
+                // Next char is not valid, so stop and finish the ident token
+                _ => break,
+            }
+        }
+
+        // Check for pre-defined keywords
+        let token = match ident.as_str() {
+            "loop" => Token::Loop,
+            "print" => Token::Print,
+            "if" => Token::If,
+            "else" => Token::Else,
+
+            // If it doesn't match a keyword, it is a normal identifier
+            _ => Token::Ident(ident),
+        };
+
+        Ok(token)
     }
 
     /// Advance to next character and return the removed char
