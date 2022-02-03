@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, rc::Rc};
+use std::{fmt::Display, rc::Rc};
 
 use crate::{
     ast::{Ast, BinOpType, Expression, If, Statement, UnOpType},
@@ -17,7 +17,7 @@ pub struct Interpreter {
     capture_output: bool,
     output: Vec<Value>,
     // Variable table stores the runtime values of variables
-    vartable: HashMap<String, Value>,
+    vartable: Vec<(String, Value)>,
 }
 
 impl Interpreter {
@@ -31,6 +31,22 @@ impl Interpreter {
 
     pub fn output(&self) -> &[Value] {
         &self.output
+    }
+
+    fn get_var(&self, name: &str) -> Option<Value> {
+        self.vartable
+            .iter()
+            .rev()
+            .find(|it| it.0 == name)
+            .map(|it| it.1.clone())
+    }
+
+    fn get_var_mut(&mut self, name: &str) -> Option<&mut Value> {
+        self.vartable
+            .iter_mut()
+            .rev()
+            .find(|it| it.0 == name)
+            .map(|it| &mut it.1)
     }
 
     pub fn run_str(&mut self, code: &str, print_tokens: bool, print_ast: bool) {
@@ -48,6 +64,7 @@ impl Interpreter {
     }
 
     pub fn run(&mut self, prog: &Ast) {
+        let vartable_len = self.vartable.len();
         for stmt in &prog.prog {
             match stmt {
                 Statement::Expr(expr) => {
@@ -92,6 +109,8 @@ impl Interpreter {
                 }
             }
         }
+
+        self.vartable.truncate(vartable_len);
     }
 
     fn resolve_expr(&mut self, expr: &Expression) -> Value {
@@ -105,7 +124,7 @@ impl Interpreter {
     }
 
     fn resolve_var(&mut self, name: &str) -> Value {
-        match self.vartable.get(name) {
+        match self.get_var(name) {
             Some(val) => val.clone(),
             None => panic!("Variable '{}' used but not declared", name),
         }
@@ -127,11 +146,11 @@ impl Interpreter {
 
         match (&bo, &lhs) {
             (BinOpType::Declare, Expression::Var(name)) => {
-                self.vartable.insert(name.clone(), rhs.clone());
+                self.vartable.push((name.clone(), rhs.clone()));
                 return rhs;
             }
             (BinOpType::Assign, Expression::Var(name)) => {
-                match self.vartable.get_mut(name) {
+                match self.get_var_mut(name) {
                     Some(val) => *val = rhs.clone(),
                     None => panic!("Runtime Error: Trying to assign value to undeclared variable"),
                 }
