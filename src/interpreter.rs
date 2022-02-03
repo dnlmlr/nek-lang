@@ -1,6 +1,10 @@
 use std::{collections::HashMap, fmt::Display, rc::Rc};
 
-use crate::{ast::{Expression, BinOpType, UnOpType, Ast, Statement, If}, parser::parse, lexer::lex};
+use crate::{
+    ast::{Ast, BinOpType, Expression, If, Statement, UnOpType},
+    lexer::lex,
+    parser::parse,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value {
@@ -61,7 +65,11 @@ impl Interpreter {
                     print!("{}", result);
                 }
 
-                Statement::If(If {condition, body_true, body_false}) => {
+                Statement::If(If {
+                    condition,
+                    body_true,
+                    body_false,
+                }) => {
                     if matches!(self.resolve_expr(condition), Value::I64(0)) {
                         self.run(body_false);
                     } else {
@@ -69,7 +77,6 @@ impl Interpreter {
                     }
                 }
             }
-
         }
     }
 
@@ -116,9 +123,9 @@ impl Interpreter {
                 }
                 return rhs;
             }
-            _ => ()
+            _ => (),
         }
-        
+
         let lhs = self.resolve_expr(lhs);
 
         match (lhs, rhs) {
@@ -158,11 +165,10 @@ impl Display for Value {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use super::{Interpreter, Value};
-    use crate::ast::{Expression, BinOpType};
+    use crate::ast::{BinOpType, Expression};
 
     #[test]
     fn test_interpreter_expr() {
@@ -173,7 +179,12 @@ mod test {
             Expression::BinOp(
                 BinOpType::Add,
                 Expression::I64(1).into(),
-                Expression::BinOp(BinOpType::Mul, Expression::I64(2).into(), Expression::I64(3).into()).into(),
+                Expression::BinOp(
+                    BinOpType::Mul,
+                    Expression::I64(2).into(),
+                    Expression::I64(3).into(),
+                )
+                .into(),
             )
             .into(),
             Expression::I64(4).into(),

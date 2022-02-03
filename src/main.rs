@@ -1,7 +1,10 @@
-use std::{env::args, fs, io::{stdout, Write, stdin}};
+use std::{
+    env::args,
+    fs,
+    io::{stdin, stdout, Write},
+};
 
 use nek_lang::interpreter::Interpreter;
-
 
 #[derive(Debug, Default)]
 struct CliConfig {
@@ -12,7 +15,6 @@ struct CliConfig {
 }
 
 fn main() {
-
     let mut conf = CliConfig::default();
 
     // Go through all commandline arguments except the first (filename)
@@ -42,14 +44,12 @@ fn main() {
 
             code.clear();
             stdin().read_line(&mut code).unwrap();
-            
+
             if code.trim() == "exit" {
                 break;
             }
 
             interpreter.run_str(&code, conf.print_tokens, conf.print_ast);
         }
-
     }
-
 }

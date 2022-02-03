@@ -1,7 +1,7 @@
 use std::iter::Peekable;
 
-use crate::token::Token;
 use crate::ast::*;
+use crate::token::Token;
 
 /// Parse the given tokens into an abstract syntax tree
 pub fn parse<T: Iterator<Item = Token>, A: IntoIterator<IntoIter = T>>(tokens: A) -> Ast {
@@ -20,7 +20,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Self { tokens }
     }
 
-    /// Parse tokens into an abstract syntax tree. This will continuously parse statements until 
+    /// Parse tokens into an abstract syntax tree. This will continuously parse statements until
     /// encountering end-of-file or a block end '}' .
     fn parse(&mut self) -> Ast {
         let mut prog = Vec::new();
@@ -30,23 +30,17 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Token::Semicolon => {
                     self.next();
                 }
-                Token::EoF => break,
-                Token::RBraces => {
-                    break;
-                }
+                Token::EoF | Token::RBraces => break,
 
                 // By default try to lex a statement
-                _ => {
-                    prog.push(self.parse_stmt())
-                }
+                _ => prog.push(self.parse_stmt()),
             }
         }
 
         Ast { prog }
-
     }
 
-    /// Parse a single statement from the tokens. 
+    /// Parse a single statement from the tokens.
     fn parse_stmt(&mut self) -> Statement {
         match self.peek() {
             Token::Loop => Statement::Loop(self.parse_loop()),
@@ -108,13 +102,17 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             }
 
             body_false = self.parse();
-            
+
             if !matches!(self.next(), Token::RBraces) {
                 panic!("Error lexing if: Expected '}}'")
             }
         }
 
-        If { condition, body_true, body_false }
+        If {
+            condition,
+            body_true,
+            body_false,
+        }
     }
 
     /// Parse a loop statement from the tokens
@@ -141,17 +139,20 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 }
 
                 body = self.parse();
-            },
+            }
 
-            _ => panic!("Error lexing loop: Expected ';' or '{{'")
+            _ => panic!("Error lexing loop: Expected ';' or '{{'"),
         }
 
         if !matches!(self.next(), Token::RBraces) {
             panic!("Error lexing loop: Expected '}}'")
         }
 
-        Loop { condition, advancement, body }
-
+        Loop {
+            condition,
+            advancement,
+            body,
+        }
     }
 
     /// Parse a single expression from the tokens
@@ -222,7 +223,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 let operand = self.parse_primary();
                 Expression::UnOp(UnOpType::BNot, operand.into())
             }
-            
+
             // Unary logical not
             Token::LNot => {
                 let operand = self.parse_primary();
@@ -246,8 +247,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse, Expression, BinOpType};
-    use crate::{token::Token, parser::{Statement, Ast}};
+    use super::{parse, BinOpType, Expression};
+    use crate::{
+        parser::{Ast, Statement},
+        token::Token,
+    };
 
     #[test]
     fn test_parser() {
@@ -269,13 +273,20 @@ mod tests {
             Expression::BinOp(
                 BinOpType::Add,
                 Expression::I64(1).into(),
-                Expression::BinOp(BinOpType::Mul, Expression::I64(2).into(), Expression::I64(3).into()).into(),
+                Expression::BinOp(
+                    BinOpType::Mul,
+                    Expression::I64(2).into(),
+                    Expression::I64(3).into(),
+                )
+                .into(),
             )
             .into(),
             Expression::I64(4).into(),
         ));
 
-        let expected = Ast { prog: vec![expected] };
+        let expected = Ast {
+            prog: vec![expected],
+        };
 
         let actual = parse(tokens);
         assert_eq!(expected, actual);

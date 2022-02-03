@@ -126,7 +126,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Lex multiple characters as a number until encountering a non numeric digit. This includes
-    /// the first character 
+    /// the first character
     fn lex_number(&mut self, first_char: char) -> Result<Token, LexErr> {
         // String representation of the integer value
         let mut sval = String::from(first_char);
