@@ -3,6 +3,12 @@ use std::iter::Peekable;
 use crate::token::Token;
 use crate::ast::*;
 
+/// Parse the given tokens into an abstract syntax tree
+pub fn parse<T: Iterator<Item = Token>, A: IntoIterator<IntoIter = T>>(tokens: A) -> Ast {
+    let mut parser = Parser::new(tokens);
+    parser.parse()
+}
+
 struct Parser<T: Iterator<Item = Token>> {
     tokens: Peekable<T>,
 }
@@ -14,6 +20,8 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Self { tokens }
     }
 
+    /// Parse tokens into an abstract syntax tree. This will continuously parse statements until 
+    /// encountering end-of-file or a block end '}' .
     fn parse(&mut self) -> Ast {
         let mut prog = Vec::new();
 
@@ -38,6 +46,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
     }
 
+    /// Parse a single statement from the tokens. 
     fn parse_stmt(&mut self) -> Statement {
         match self.peek() {
             Token::Loop => Statement::Loop(self.parse_loop()),
@@ -71,6 +80,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
+    /// Parse an if statement from the tokens
     fn parse_if(&mut self) -> If {
         if !matches!(self.next(), Token::If) {
             panic!("Error lexing if: Expected if token");
@@ -107,6 +117,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         If { condition, body_true, body_false }
     }
 
+    /// Parse a loop statement from the tokens
     fn parse_loop(&mut self) -> Loop {
         if !matches!(self.next(), Token::Loop) {
             panic!("Error lexing loop: Expected loop token");
@@ -143,6 +154,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
     }
 
+    /// Parse a single expression from the tokens
     fn parse_expr(&mut self) -> Expression {
         let lhs = self.parse_primary();
         self.parse_expr_precedence(lhs, 0)
@@ -229,37 +241,6 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     /// Advance to next Token and return the removed Token
     fn next(&mut self) -> Token {
         self.tokens.next().unwrap_or(Token::EoF)
-    }
-}
-
-pub fn parse<T: Iterator<Item = Token>, A: IntoIterator<IntoIter = T>>(tokens: A) -> Ast {
-    let mut parser = Parser::new(tokens);
-    parser.parse()
-}
-
-impl BinOpType {
-    /// Get the precedence for a binary operator. Higher value means the OP is stronger binding.
-    /// For example Multiplication is stronger than addition, so Mul has higher precedence than Add.
-    ///
-    /// The operator precedences are derived from the C language operator precedences. While not all
-    /// C operators are included or the exact same, the precedence oder is the same.
-    /// See: https://en.cppreference.com/w/c/language/operator_precedence
-
-    fn precedence(&self) -> u8 {
-        match self {
-            BinOpType::Declare => 0,
-            BinOpType::Assign => 1,
-            BinOpType::LOr => 2,
-            BinOpType::LAnd => 3,
-            BinOpType::BOr => 4,
-            BinOpType::BXor => 5,
-            BinOpType::BAnd => 6,
-            BinOpType::EquEqu | BinOpType::NotEqu => 7,
-            BinOpType::Less | BinOpType::LessEqu | BinOpType::Greater | BinOpType::GreaterEqu => 8,
-            BinOpType::Shl | BinOpType::Shr => 9,
-            BinOpType::Add | BinOpType::Sub => 10,
-            BinOpType::Mul | BinOpType::Div | BinOpType::Mod => 11,
-        }
     }
 }
 

@@ -122,3 +122,29 @@ pub enum Statement {
 pub struct Ast {
     pub prog: Vec<Statement>,
 }
+
+impl BinOpType {
+    /// Get the precedence for a binary operator. Higher value means the OP is stronger binding.
+    /// For example Multiplication is stronger than addition, so Mul has higher precedence than Add.
+    ///
+    /// The operator precedences are derived from the C language operator precedences. While not all
+    /// C operators are included or the exact same, the precedence oder is the same.
+    /// See: https://en.cppreference.com/w/c/language/operator_precedence
+
+    pub fn precedence(&self) -> u8 {
+        match self {
+            BinOpType::Declare => 0,
+            BinOpType::Assign => 1,
+            BinOpType::LOr => 2,
+            BinOpType::LAnd => 3,
+            BinOpType::BOr => 4,
+            BinOpType::BXor => 5,
+            BinOpType::BAnd => 6,
+            BinOpType::EquEqu | BinOpType::NotEqu => 7,
+            BinOpType::Less | BinOpType::LessEqu | BinOpType::Greater | BinOpType::GreaterEqu => 8,
+            BinOpType::Shl | BinOpType::Shr => 9,
+            BinOpType::Add | BinOpType::Sub => 10,
+            BinOpType::Mul | BinOpType::Div | BinOpType::Mod => 11,
+        }
+    }
+}
