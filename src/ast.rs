@@ -97,7 +97,7 @@ pub struct Loop {
     /// This is executed after each loop to advance the condition variables
     pub advancement: Option<Expression>,
     /// The loop body that is executed each loop
-    pub body: Ast,
+    pub body: BlockScope,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -105,9 +105,9 @@ pub struct If {
     /// The condition
     pub condition: Expression,
     /// The body that is executed when condition is true
-    pub body_true: Ast,
+    pub body_true: BlockScope,
     /// The if body that is executed when the condition is false
-    pub body_false: Ast,
+    pub body_false: BlockScope,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -118,10 +118,7 @@ pub enum Statement {
     Print(Expression),
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Default)]
-pub struct Ast {
-    pub prog: Vec<Statement>,
-}
+pub type BlockScope = Vec<Statement>;
 
 impl BinOpType {
     /// Get the precedence for a binary operator. Higher value means the OP is stronger binding.

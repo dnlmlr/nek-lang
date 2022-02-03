@@ -1,7 +1,7 @@
 use std::{fmt::Display, rc::Rc};
 
 use crate::{
-    ast::{Ast, BinOpType, Expression, If, Statement, UnOpType},
+    ast::{BlockScope, BinOpType, Expression, If, Statement, UnOpType},
     lexer::lex,
     parser::parse,
 };
@@ -63,9 +63,9 @@ impl Interpreter {
         self.run(&ast);
     }
 
-    pub fn run(&mut self, prog: &Ast) {
+    pub fn run(&mut self, prog: &BlockScope) {
         let vartable_len = self.vartable.len();
-        for stmt in &prog.prog {
+        for stmt in prog {
             match stmt {
                 Statement::Expr(expr) => {
                     self.resolve_expr(expr);

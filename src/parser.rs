@@ -4,7 +4,7 @@ use crate::ast::*;
 use crate::token::Token;
 
 /// Parse the given tokens into an abstract syntax tree
-pub fn parse<T: Iterator<Item = Token>, A: IntoIterator<IntoIter = T>>(tokens: A) -> Ast {
+pub fn parse<T: Iterator<Item = Token>, A: IntoIterator<IntoIter = T>>(tokens: A) -> BlockScope {
     let mut parser = Parser::new(tokens);
     parser.parse()
 }
@@ -22,7 +22,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
     /// Parse tokens into an abstract syntax tree. This will continuously parse statements until
     /// encountering end-of-file or a block end '}' .
-    fn parse(&mut self) -> Ast {
+    fn parse(&mut self) -> BlockScope {
         let mut prog = Vec::new();
 
         loop {
@@ -37,7 +37,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             }
         }
 
-        Ast { prog }
+        prog
     }
 
     /// Parse a single statement from the tokens.
@@ -92,7 +92,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             panic!("Error lexing if: Expected '}}'")
         }
 
-        let mut body_false = Ast::default();
+        let mut body_false = BlockScope::default();
 
         if matches!(self.peek(), Token::Else) {
             self.next();
@@ -249,7 +249,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 mod tests {
     use super::{parse, BinOpType, Expression};
     use crate::{
-        parser::{Ast, Statement},
+        parser::Statement,
         token::Token,
     };
 
@@ -284,9 +284,7 @@ mod tests {
             Expression::I64(4).into(),
         ));
 
-        let expected = Ast {
-            prog: vec![expected],
-        };
+        let expected = vec![expected];
 
         let actual = parse(tokens);
         assert_eq!(expected, actual);
