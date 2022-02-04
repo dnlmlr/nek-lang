@@ -113,6 +113,7 @@ pub struct If {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Statement {
     Expr(Expression),
+    Block(BlockScope),
     Loop(Loop),
     If(If),
     Print(Expression),

@@ -18,6 +18,7 @@ impl SimpleAstOptimizer {
         for stmt in block {
             match stmt {
                 Statement::Expr(expr) => Self::optimize_expr(expr),
+                Statement::Block(block) => Self::optimize_block(block),
                 Statement::Loop(Loop {
                     condition,
                     advancement,

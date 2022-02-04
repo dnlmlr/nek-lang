@@ -78,6 +78,10 @@ impl Interpreter {
                     self.resolve_expr(expr);
                 }
 
+                Statement::Block(block) => {
+                    self.run_block(block);
+                }
+
                 Statement::Loop(looop) => {
                     // loop runs as long condition != 0
                     loop {

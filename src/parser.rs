@@ -50,6 +50,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 }
                 Token::EoF | Token::RBraces => break,
 
+                Token::LBraces => {
+                    self.next();
+                    prog.push(Statement::Block(self.parse_scoped_block()));
+                    if !matches!(self.next(), Token::RBraces) {
+                        panic!("Error parsing block: Expectected closing braces '}}'");
+                    }
+                }
+
                 // By default try to lex a statement
                 _ => prog.push(self.parse_stmt()),
             }
