@@ -1,7 +1,7 @@
 use crate::{
-    ast::{BlockScope, BinOpType, Expression, If, Statement, UnOpType},
+    ast::{BlockScope, BinOpType, Expression, If, Statement, UnOpType, Ast},
     lexer::lex,
-    parser::parse, stringstore::{Sid, StringStore},
+    parser::parse, stringstore::{Sid, StringStore}, astoptimizer::{SimpleAstOptimizer, AstOptimizer},
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -12,8 +12,15 @@ pub enum Value {
 
 #[derive(Default)]
 pub struct Interpreter {
-    capture_output: bool,
+    pub optimize_ast: bool,
+
+    pub print_tokens: bool,
+    pub print_ast: bool,
+
+    pub capture_output: bool,
     output: Vec<Value>,
+
+
     // Variable table stores the runtime values of variables
     vartable: Vec<Value>,
 
@@ -22,11 +29,7 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn set_capture_output(&mut self, enabled: bool) {
-        self.capture_output = enabled;
+        Self { optimize_ast: true, ..Self::default() }
     }
 
     pub fn output(&self) -> &[Value] {
@@ -41,14 +44,23 @@ impl Interpreter {
         self.vartable.get_mut(idx)
     }
 
-    pub fn run_str(&mut self, code: &str, print_tokens: bool, print_ast: bool) {
+    pub fn run_str(&mut self, code: &str) {
         let tokens = lex(code).unwrap();
-        if print_tokens {
+        if self.print_tokens {
             println!("Tokens: {:?}", tokens);
         }
 
         let ast = parse(tokens);
-        if print_ast {
+
+        self.run_ast(ast);
+    }
+
+    pub fn run_ast(&mut self, mut ast: Ast) {
+        if self.optimize_ast {
+            ast = SimpleAstOptimizer::optimize(ast);
+        }
+        
+        if self.print_ast {
             println!("{:#?}", ast.main);
         }
 

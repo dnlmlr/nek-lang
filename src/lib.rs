@@ -4,6 +4,7 @@ pub mod lexer;
 pub mod parser;
 pub mod token;
 pub mod stringstore;
+pub mod astoptimizer;
 
 #[cfg(test)]
 mod tests {
@@ -16,11 +17,11 @@ mod tests {
         let correct_result = 233168;
 
         let mut interpreter = Interpreter::new();
-        interpreter.set_capture_output(true);
+        interpreter.capture_output = true;
 
         let code = read_to_string(format!("examples/{filename}")).unwrap();
 
-        interpreter.run_str(&code, false, false);
+        interpreter.run_str(&code);
 
         let expected_output = [Value::I64(correct_result)];
 
@@ -33,11 +34,11 @@ mod tests {
         let correct_result = 4613732;
 
         let mut interpreter = Interpreter::new();
-        interpreter.set_capture_output(true);
+        interpreter.capture_output = true;
 
         let code = read_to_string(format!("examples/{filename}")).unwrap();
 
-        interpreter.run_str(&code, false, false);
+        interpreter.run_str(&code);
 
         let expected_output = [Value::I64(correct_result)];
 
@@ -50,11 +51,11 @@ mod tests {
         let correct_result = 6857;
 
         let mut interpreter = Interpreter::new();
-        interpreter.set_capture_output(true);
+        interpreter.capture_output = true;
 
         let code = read_to_string(format!("examples/{filename}")).unwrap();
 
-        interpreter.run_str(&code, false, false);
+        interpreter.run_str(&code);
 
         let expected_output = [Value::I64(correct_result)];
 
@@ -67,11 +68,11 @@ mod tests {
         let correct_result = 906609;
 
         let mut interpreter = Interpreter::new();
-        interpreter.set_capture_output(true);
+        interpreter.capture_output = true;
 
         let code = read_to_string(format!("examples/{filename}")).unwrap();
 
-        interpreter.run_str(&code, false, false);
+        interpreter.run_str(&code);
 
         let expected_output = [Value::I64(correct_result)];
 
@@ -84,11 +85,11 @@ mod tests {
         let correct_result = 232792560;
 
         let mut interpreter = Interpreter::new();
-        interpreter.set_capture_output(true);
+        interpreter.capture_output = true;
 
         let code = read_to_string(format!("examples/{filename}")).unwrap();
 
-        interpreter.run_str(&code, false, false);
+        interpreter.run_str(&code);
 
         let expected_output = [Value::I64(correct_result)];
 
