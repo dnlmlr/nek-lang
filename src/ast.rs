@@ -83,7 +83,7 @@ pub enum Expression {
     /// String literal
     String(Sid),
     /// Variable
-    Var(Sid),
+    Var(Sid, usize),
     /// Binary operation. Consists of type, left hand side and right hand side
     BinOp(BinOpType, Box<Expression>, Box<Expression>),
     /// Unary operation. Consists of type and operand

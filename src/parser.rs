@@ -1,7 +1,7 @@
 use std::iter::Peekable;
 
 use crate::ast::*;
-use crate::stringstore::StringStore;
+use crate::stringstore::{Sid, StringStore};
 use crate::token::Token;
 
 /// Parse the given tokens into an abstract syntax tree
@@ -13,6 +13,7 @@ pub fn parse<T: Iterator<Item = Token>, A: IntoIterator<IntoIter = T>>(tokens: A
 struct Parser<T: Iterator<Item = Token>> {
     tokens: Peekable<T>,
     stringstore: StringStore,
+    varstack: Vec<Sid>,
 }
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -20,9 +21,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     pub fn new<A: IntoIterator<IntoIter = T>>(tokens: A) -> Self {
         let tokens = tokens.into_iter().peekable();
         let stringstore = StringStore::new();
+        let varstack = Vec::new();
         Self {
             tokens,
             stringstore,
+            varstack,
         }
     }
 
@@ -37,6 +40,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     /// Parse tokens into an abstract syntax tree. This will continuously parse statements until
     /// encountering end-of-file or a block end '}' .
     fn parse_scoped_block(&mut self) -> BlockScope {
+        let framepointer = self.varstack.len();
         let mut prog = Vec::new();
 
         loop {
@@ -50,6 +54,8 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 _ => prog.push(self.parse_stmt()),
             }
         }
+
+        self.varstack.truncate(framepointer);
 
         prog
     }
@@ -76,7 +82,20 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
             // If it is not a loop, try to lex as an expression
             _ => {
-                let stmt = Statement::Expr(self.parse_expr());
+                let mut expr = self.parse_expr();
+
+                match &mut expr {
+                    Expression::BinOp(BinOpType::Declare, lhs, _) => match lhs.as_mut() {
+                        Expression::Var(sid, sp) => {
+                            *sp = self.varstack.len();
+                            self.varstack.push(*sid);
+                        }
+                        _ => panic!("Left hand side of declaration must be variable"),
+                    },
+                    _ => (),
+                }
+
+                let stmt = Statement::Expr(expr);
 
                 // After a statement, there must be a semicolon
                 if !matches!(self.next(), Token::Semicolon) {
@@ -212,7 +231,17 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             // Literal String
             Token::String(text) => Expression::String(self.stringstore.intern_or_lookup(&text)),
 
-            Token::Ident(name) => Expression::Var(self.stringstore.intern_or_lookup(&name)),
+            Token::Ident(name) => {
+                let sid = self.stringstore.intern_or_lookup(&name);
+                let stackpos = self
+                    .varstack
+                    .iter()
+                    .rev()
+                    .position(|it| *it == sid)
+                    .map(|it| self.varstack.len() - it - 1)
+                    .unwrap_or(usize::MAX);
+                Expression::Var(sid, stackpos)
+            }
 
             // Parentheses grouping
             Token::LParen => {

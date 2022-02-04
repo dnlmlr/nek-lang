@@ -15,7 +15,7 @@ pub struct Interpreter {
     capture_output: bool,
     output: Vec<Value>,
     // Variable table stores the runtime values of variables
-    vartable: Vec<(Sid, Value)>,
+    vartable: Vec<Value>,
 
     stringstore: StringStore,
 }
@@ -33,20 +33,12 @@ impl Interpreter {
         &self.output
     }
 
-    fn get_var(&self, name: Sid) -> Option<Value> {
-        self.vartable
-            .iter()
-            .rev()
-            .find(|it| it.0 == name)
-            .map(|it| it.1.clone())
+    fn get_var(&self, idx: usize) -> Option<Value> {
+        self.vartable.get(idx).cloned()
     }
 
-    fn get_var_mut(&mut self, name: Sid) -> Option<&mut Value> {
-        self.vartable
-            .iter_mut()
-            .rev()
-            .find(|it| it.0 == name)
-            .map(|it| &mut it.1)
+    fn get_var_mut(&mut self, idx: usize) -> Option<&mut Value> {
+        self.vartable.get_mut(idx)
     }
 
     pub fn run_str(&mut self, code: &str, print_tokens: bool, print_ast: bool) {
@@ -66,7 +58,8 @@ impl Interpreter {
     }
 
     pub fn run_block(&mut self, prog: &BlockScope) {
-        let vartable_len = self.vartable.len();
+        let framepointer = self.vartable.len();
+
         for stmt in prog {
             match stmt {
                 Statement::Expr(expr) => {
@@ -112,7 +105,7 @@ impl Interpreter {
             }
         }
 
-        self.vartable.truncate(vartable_len);
+        self.vartable.truncate(framepointer);
     }
 
     fn resolve_expr(&mut self, expr: &Expression) -> Value {
@@ -121,13 +114,13 @@ impl Interpreter {
             Expression::String(text) => Value::String(text.clone()),
             Expression::BinOp(bo, lhs, rhs) => self.resolve_binop(bo, lhs, rhs),
             Expression::UnOp(uo, operand) => self.resolve_unop(uo, operand),
-            Expression::Var(name) => self.resolve_var(*name),
+            Expression::Var(name, idx) => self.resolve_var(*name, *idx),
         }
     }
 
-    fn resolve_var(&mut self, name: Sid) -> Value {
-        match self.get_var(name) {
-            Some(val) => val.clone(),
+    fn resolve_var(&mut self, name: Sid, idx: usize) -> Value {
+        match self.get_var(idx) {
+            Some(val) => val,
             None => panic!("Variable '{}' used but not declared", self.stringstore.lookup(name).unwrap()),
         }
     }
@@ -147,14 +140,14 @@ impl Interpreter {
         let rhs = self.resolve_expr(rhs);
 
         match (&bo, &lhs) {
-            (BinOpType::Declare, Expression::Var(name)) => {
-                self.vartable.push((name.clone(), rhs.clone()));
+            (BinOpType::Declare, Expression::Var(_name, _idx)) => {
+                self.vartable.push(rhs.clone());
                 return rhs;
             }
-            (BinOpType::Assign, Expression::Var(name)) => {
-                match self.get_var_mut(*name) {
+            (BinOpType::Assign, Expression::Var(name, idx)) => {
+                match self.get_var_mut(*idx) {
                     Some(val) => *val = rhs.clone(),
-                    None => panic!("Runtime Error: Trying to assign value to undeclared variable"),
+                    None => panic!("Runtime Error: Trying to assign value to undeclared variable: {:?}", self.stringstore.lookup(*name)),
                 }
                 return rhs;
             }
