@@ -106,6 +106,8 @@ impl<'a> Lexer<'a> {
                 '{' => tokens.push(Token::LBraces),
                 '}' => tokens.push(Token::RBraces),
                 '!' => tokens.push(Token::LNot),
+                '[' => tokens.push(Token::LBracket),
+                ']' => tokens.push(Token::RBracket),
 
                 // Special tokens with variable length
 

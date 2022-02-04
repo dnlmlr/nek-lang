@@ -82,6 +82,13 @@ pub enum Expression {
     I64(i64),
     /// String literal
     String(Sid),
+
+    /// Array with size
+    ArrayLiteral(Box<Expression>),
+
+    /// Array access with name, stackpos and position
+    ArrayAccess(Sid, usize, Box<Expression>),
+
     /// Variable
     Var(Sid, usize),
     /// Binary operation. Consists of type, left hand side and right hand side

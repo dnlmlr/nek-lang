@@ -46,7 +46,6 @@ impl SimpleAstOptimizer {
 
     fn optimize_expr(expr: &mut Expression) {
         match expr {
-            Expression::I64(_) | Expression::String(_) | Expression::Var(_, _) => (),
             Expression::BinOp(bo, lhs, rhs) => {
                 Self::optimize_expr(lhs);
                 Self::optimize_expr(rhs);
@@ -99,6 +98,7 @@ impl SimpleAstOptimizer {
                     _ => (),
                 }
             }
+            _ => (),
         }
 
     }

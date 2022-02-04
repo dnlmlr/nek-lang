@@ -23,6 +23,12 @@ pub enum Token {
     /// Else keyword (else)
     Else,
 
+    /// Left Bracket ('[')
+    LBracket,
+
+    /// Right Bracket (']')
+    RBracket,
+
     /// Left Parenthesis ('(')
     LParen,
 

@@ -239,6 +239,37 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             // Literal String
             Token::String(text) => Expression::String(self.stringstore.intern_or_lookup(&text)),
 
+            Token::LBracket => {
+                let size = self.parse_expr();
+
+                if !matches!(self.next(), Token::RBracket) {
+                    panic!("Error parsing array literal: Expected closing bracket")
+                }
+
+                Expression::ArrayLiteral(size.into())
+            }
+
+            Token::Ident(name) if matches!(self.peek(), Token::LBracket) => {
+                let sid = self.stringstore.intern_or_lookup(&name);
+                let stackpos = self
+                    .varstack
+                    .iter()
+                    .rev()
+                    .position(|it| *it == sid)
+                    .map(|it| self.varstack.len() - it - 1)
+                    .unwrap_or(usize::MAX);
+                
+                self.next();
+
+                let size = self.parse_expr();
+
+                if !matches!(self.next(), Token::RBracket) {
+                    panic!("Error parsing array access: Expected closing bracket")
+                }
+
+                Expression::ArrayAccess(sid, stackpos, size.into())
+            }
+
             Token::Ident(name) => {
                 let sid = self.stringstore.intern_or_lookup(&name);
                 let stackpos = self

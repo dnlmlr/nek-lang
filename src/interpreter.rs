@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use crate::{
     ast::{BlockScope, BinOpType, Expression, If, Statement, UnOpType, Ast},
     lexer::lex,
@@ -8,6 +10,7 @@ use crate::{
 pub enum Value {
     I64(i64),
     String(Sid),
+    Array(RefCell<Vec<Value>>),
 }
 
 #[derive(Default)]
@@ -127,11 +130,39 @@ impl Interpreter {
     fn resolve_expr(&mut self, expr: &Expression) -> Value {
         match expr {
             Expression::I64(val) => Value::I64(*val),
+            Expression::ArrayLiteral(size) => {
+                let size = match self.resolve_expr(size) {
+                    Value::I64(size) => size,
+                    _ => panic!("Array size needs to be I64"),
+                };
+                Value::Array(RefCell::new(vec![Value::I64(0); size as usize]))
+            }
             Expression::String(text) => Value::String(text.clone()),
             Expression::BinOp(bo, lhs, rhs) => self.resolve_binop(bo, lhs, rhs),
             Expression::UnOp(uo, operand) => self.resolve_unop(uo, operand),
             Expression::Var(name, idx) => self.resolve_var(*name, *idx),
+            Expression::ArrayAccess(name, idx, arr_idx) => self.resolve_array_access(*name, *idx, arr_idx),
         }
+    }
+
+    fn resolve_array_access(&mut self, name: Sid, idx: usize, arr_idx: &Expression) -> Value {
+        let arr_idx = match self.resolve_expr(arr_idx) {
+            Value::I64(size) => size,
+            _ => panic!("Array index needs to be I64"),
+        };
+
+        let val = match self.get_var(idx) {
+            Some(val) => val,
+            None => panic!("Variable '{}' used but not declared", self.stringstore.lookup(name).unwrap()),
+        };
+
+        let arr = match val {
+            Value::Array(arr) => arr,
+            _ => panic!("Variable '{}' used but not declared", self.stringstore.lookup(name).unwrap()),
+        };
+
+        let arr = arr.borrow_mut();
+        arr.get(arr_idx as usize).cloned().expect("Runtime error: Invalid array index")
     }
 
     fn resolve_var(&mut self, name: Sid, idx: usize) -> Value {
@@ -165,6 +196,24 @@ impl Interpreter {
                     Some(val) => *val = rhs.clone(),
                     None => panic!("Runtime Error: Trying to assign value to undeclared variable: {:?}", self.stringstore.lookup(*name)),
                 }
+                return rhs;
+            }
+            (BinOpType::Assign, Expression::ArrayAccess(name, idx, arr_idx)) => {
+                let arr_idx = match self.resolve_expr(arr_idx) {
+                    Value::I64(size) => size,
+                    _ => panic!("Array index needs to be I64"),
+                };
+
+                let val = match self.get_var_mut(*idx) {
+                    Some(val) => val,
+                    None => panic!("Runtime Error: Trying to assign value to undeclared variable: {:?}", self.stringstore.lookup(*name)),
+                };
+
+                match val {
+                    Value::Array(arr) => arr.borrow_mut()[arr_idx as usize] = rhs.clone(),
+                    _ => panic!("Variable '{}' used but not declared", self.stringstore.lookup(*name).unwrap()),
+                }
+
                 return rhs;
             }
             _ => (),
@@ -202,6 +251,7 @@ impl Interpreter {
     fn print_value(&self, val: &Value) {
         match val {
             Value::I64(val) => print!("{}", val),
+            Value::Array(val) => print!("{:?}", val.borrow()),
             Value::String(text) => print!("{}", self.stringstore.lookup(*text).unwrap()),
         }
     }
