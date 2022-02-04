@@ -12,16 +12,25 @@ pub enum Value {
     String(Rc<String>),
 }
 
+#[derive(Default)]
 pub struct Interpreter {
+    capture_output: bool,
+    output: Vec<Value>,
     // Variable table stores the runtime values of variables
     vartable: HashMap<String, Value>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self {
-            vartable: HashMap::new(),
-        }
+        Self::default()
+    }
+
+    pub fn set_capture_output(&mut self, enabled: bool) {
+        self.capture_output = enabled;
+    }
+
+    pub fn output(&self) -> &[Value] {
+        &self.output
     }
 
     pub fn run_str(&mut self, code: &str, print_tokens: bool, print_ast: bool) {
@@ -62,7 +71,12 @@ impl Interpreter {
 
                 Statement::Print(expr) => {
                     let result = self.resolve_expr(expr);
-                    print!("{}", result);
+
+                    if self.capture_output {
+                        self.output.push(result)
+                    } else {
+                        print!("{}", result);
+                    }
                 }
 
                 Statement::If(If {
