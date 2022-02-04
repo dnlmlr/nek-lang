@@ -4,23 +4,15 @@
 // 
 // Correct Answer: 906609
 
-
 res <- 0;
 
-tmp <- 0;
-num <- 0;
-num_rev <- 0;
-
 i <- 100;
-k <- 100;
 loop i < 1_000; i = i + 1 {
-    k = 100;
+    k <- 100;
     loop k < 1_000; k = k + 1 {
-        num_rev = 0;
-
-        num = i * k;
-
-        tmp = num;
+        num_rev <- 0;
+        num <- i * k;
+        tmp <- num;
 
         loop tmp {
             num_rev = num_rev*10 + tmp % 10;

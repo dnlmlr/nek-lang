@@ -10,14 +10,12 @@ sum <- 0;
 
 a <- 0;
 b <- 1;
-tmp <- 0;
-
 loop a < 4_000_000 {
     if a % 2 == 0 {
         sum = sum + a;
     }
 
-    tmp = a;
+    tmp <- a;
     a = b;
     b = b + tmp;
 }
