@@ -261,13 +261,13 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 
                 self.next();
 
-                let size = self.parse_expr();
+                let index = self.parse_expr();
 
                 if !matches!(self.next(), Token::RBracket) {
                     panic!("Error parsing array access: Expected closing bracket")
                 }
 
-                Expression::ArrayAccess(sid, stackpos, size.into())
+                Expression::ArrayAccess(sid, stackpos, index.into())
             }
 
             Token::Ident(name) => {
