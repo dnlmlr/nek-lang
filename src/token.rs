@@ -191,17 +191,17 @@ macro_rules! T {
     };
 
     // Literals
-    [i64($val:tt)] => {
-        crate::token::Token::Literal(crate::token::Literal::I64($val))
+    [i64($($val:tt)*)] => {
+        crate::token::Token::Literal(crate::token::Literal::I64($($val)*))
     };
 
-    [str($val:tt)] => {
-        crate::token::Token::Literal(crate::token::Literal::String($val))
+    [str($($val:tt)*)] => {
+        crate::token::Token::Literal(crate::token::Literal::String($($val)*))
     };
 
     // Ident
-    [ident($val:tt)] => {
-        crate::token::Token::Ident($val)
+    [ident($($val:tt)*)] => {
+        crate::token::Token::Ident($($val)*)
     };
 
     // Combo crate::token::Tokens
