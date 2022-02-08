@@ -1,152 +1,328 @@
-use crate::ast::BinOpType;
+use crate::{ast::BinOpType, T};
+
+/// Language keywords
+#[derive(Debug, PartialEq, Eq)]
+pub enum Keyword {
+    /// Loop keyword ("loop")
+    Loop,
+    /// Print keyword ("print")
+    Print,
+    /// If keyword ("if")
+    If,
+    /// Else keyword ("else")
+    Else,
+}
+
+/// Literal values
+#[derive(Debug, PartialEq, Eq)]
+pub enum Literal {
+    /// Integer literal (64-bit)
+    I64(i64),
+    /// String literal
+    String(String),
+}
+
+/// Combined tokens that consist of a combination of characters
+#[derive(Debug, PartialEq, Eq)]
+pub enum Combo {
+    /// Equal Equal ("==")
+    Equal2,
+
+    /// Exclamation mark Equal ("!=")
+    ExclamationMarkEqual,
+
+    /// Ampersand Ampersand ("&&")
+    Ampersand2,
+
+    /// Pipe Pipe ("||")
+    Pipe2,
+
+    /// LessThan LessThan ("<<")
+    LessThan2,
+
+    /// GreaterThan GreaterThan (">>")
+    GreaterThan2,
+
+    /// LessThan Equal ("<=")
+    LessThanEqual,
+
+    /// GreaterThan Equal (">=")
+    GreaterThanEqual,
+
+    /// LessThan Minus ("<-")
+    LessThanMinus,
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {
-    /// Integer literal (64-bit)
-    I64(i64),
+    /// Literal value token
+    Literal(Literal),
 
-    /// String literal
-    String(String),
+    /// Keyword token
+    Keyword(Keyword),
 
     /// Identifier (name for variables, functions, ...)
     Ident(String),
 
-    /// Loop keyword (loop)
-    Loop,
+    /// Combined tokens consisting of multiple characters
+    Combo(Combo),
 
-    /// Print keyword (print)
-    Print,
+    /// Equal Sign ("=")
+    Equal,
 
-    /// If keyword (if)
-    If,
-
-    /// Else keyword (else)
-    Else,
-
-    /// Left Bracket ('[')
-    LBracket,
-
-    /// Right Bracket (']')
-    RBracket,
-
-    /// Left Parenthesis ('(')
-    LParen,
-
-    /// Right Parenthesis (')')
-    RParen,
-
-    /// Left curly braces ({)
-    LBraces,
-
-    /// Right curly braces (})
-    RBraces,
-
-    /// Plus (+)
-    Add,
-
-    /// Minus (-)
-    Sub,
-
-    /// Asterisk (*)
-    Mul,
-
-    /// Slash (/)
-    Div,
-
-    /// Percent (%)
-    Mod,
-
-    /// Equal Equal (==)
-    EquEqu,
-
-    /// Exclamationmark Equal (!=)
-    NotEqu,
-
-    /// Pipe (|)
-    BOr,
-
-    /// Ampersand (&)
-    BAnd,
-
-    /// Circumflex (^)
-    BXor,
-
-    /// Logical AND (&&)
-    LAnd,
-
-    /// Logical OR (||)
-    LOr,
-
-    /// Shift Left (<<)
-    Shl,
-
-    /// Shift Right (>>)
-    Shr,
-
-    /// Tilde (~)
-    Tilde,
-
-    /// Logical not (!)
-    LNot,
-
-    /// Left angle bracket (<)
-    LAngle,
-
-    /// Right angle bracket (>)
-    RAngle,
-
-    /// Left angle bracket Equal (<=)
-    LAngleEqu,
-
-    /// Left angle bracket Equal (>=)
-    RAngleEqu,
-
-    /// Left arrow (<-)
-    LArrow,
-
-    /// Equal Sign (=)
-    Equ,
-
-    /// Semicolon (;)
+    /// Semicolon (";")
     Semicolon,
 
     /// End of file
     EoF,
+
+    /// Left Bracket ("[")
+    LBracket,
+
+    /// Right Bracket ("]")
+    RBracket,
+
+    /// Left Parenthesis ("(")
+    LParen,
+
+    /// Right Parenthesis (")"")
+    RParen,
+
+    /// Left curly braces ("{")
+    LBraces,
+
+    /// Right curly braces ("}")
+    RBraces,
+
+    /// Plus ("+")
+    Plus,
+
+    /// Minus ("-")
+    Minus,
+
+    /// Asterisk ("*")
+    Asterisk,
+
+    /// Slash ("/")
+    Slash,
+
+    /// Percent ("%")
+    Percent,
+
+    /// Pipe ("|")
+    Pipe,
+
+    /// Tilde ("~")
+    Tilde,
+
+    /// Logical not ("!")
+    Exclamationmark,
+
+    /// Left angle bracket ("<")
+    LessThan,
+
+    /// Right angle bracket (">")
+    GreaterThan,
+
+    /// Ampersand ("&")
+    Ampersand,
+
+    /// Circumflex ("^")
+    Circumflex,
 }
 
 impl Token {
+    /// If the Token can be used as a binary operation type, get the matching BinOpType. Otherwise
+    /// return None.
     pub fn try_to_binop(&self) -> Option<BinOpType> {
         Some(match self {
-            Token::Add => BinOpType::Add,
-            Token::Sub => BinOpType::Sub,
+            T![+] => BinOpType::Add,
+            T![-] => BinOpType::Sub,
 
-            Token::Mul => BinOpType::Mul,
-            Token::Div => BinOpType::Div,
-            Token::Mod => BinOpType::Mod,
+            T![*] => BinOpType::Mul,
+            T![/] => BinOpType::Div,
+            T![%] => BinOpType::Mod,
 
-            Token::BAnd => BinOpType::BAnd,
-            Token::BOr => BinOpType::BOr,
-            Token::BXor => BinOpType::BXor,
+            T![&] => BinOpType::BAnd,
+            T![|] => BinOpType::BOr,
+            T![^] => BinOpType::BXor,
 
-            Token::LAnd => BinOpType::LAnd,
-            Token::LOr => BinOpType::LOr,
+            T![&&] => BinOpType::LAnd,
+            T![||] => BinOpType::LOr,
 
-            Token::Shl => BinOpType::Shl,
-            Token::Shr => BinOpType::Shr,
+            T![<<] => BinOpType::Shl,
+            T![>>] => BinOpType::Shr,
 
-            Token::EquEqu => BinOpType::EquEqu,
-            Token::NotEqu => BinOpType::NotEqu,
+            T![==] => BinOpType::EquEqu,
+            T![!=] => BinOpType::NotEqu,
 
-            Token::LAngle => BinOpType::Less,
-            Token::LAngleEqu => BinOpType::LessEqu,
+            T![<] => BinOpType::Less,
+            T![<=] => BinOpType::LessEqu,
 
-            Token::RAngle => BinOpType::Greater,
-            Token::RAngleEqu => BinOpType::GreaterEqu,
+            T![>] => BinOpType::Greater,
+            T![>=] => BinOpType::GreaterEqu,
 
-            Token::LArrow => BinOpType::Declare,
-            Token::Equ => BinOpType::Assign,
+            T![<-] => BinOpType::Declare,
+            T![=] => BinOpType::Assign,
 
             _ => return None,
         })
     }
+}
+
+/// Macro to quickly create a token of the specified kind
+#[macro_export]
+macro_rules! T {
+    // Keywords
+    [loop] => {
+        crate::token::Token::Keyword(crate::token::Keyword::Loop)
+    };
+
+    [print] => {
+        crate::token::Token::Keyword(crate::token::Keyword::Print)
+    };
+
+    [if] => {
+        crate::token::Token::Keyword(crate::token::Keyword::If)
+    };
+
+    [else] => {
+        crate::token::Token::Keyword(crate::token::Keyword::Else)
+    };
+
+    // Literals
+    [i64($val:tt)] => {
+        crate::token::Token::Literal(crate::token::Literal::I64($val))
+    };
+
+    [str($val:tt)] => {
+        crate::token::Token::Literal(crate::token::Literal::String($val))
+    };
+
+    // Ident
+    [ident($val:tt)] => {
+        crate::token::Token::Ident($val)
+    };
+
+    // Combo crate::token::Tokens
+    [==] => {
+        crate::token::Token::Combo(crate::token::Combo::Equal2)
+    };
+
+    [!=] => {
+        crate::token::Token::Combo(crate::token::Combo::ExclamationMarkEqual)
+    };
+
+    [&&] => {
+        crate::token::Token::Combo(crate::token::Combo::Ampersand2)
+    };
+
+    [||] => {
+        crate::token::Token::Combo(crate::token::Combo::Pipe2)
+    };
+
+    [<<] => {
+        crate::token::Token::Combo(crate::token::Combo::LessThan2)
+    };
+
+    [>>] => {
+        crate::token::Token::Combo(crate::token::Combo::GreaterThan2)
+    };
+
+    [<=] => {
+        crate::token::Token::Combo(crate::token::Combo::LessThanEqual)
+    };
+
+    [>=] => {
+        crate::token::Token::Combo(crate::token::Combo::GreaterThanEqual)
+    };
+
+    [<-] => {
+        crate::token::Token::Combo(crate::token::Combo::LessThanMinus)
+    };
+
+    // Normal Tokens
+    [=] => {
+        crate::token::Token::Equal
+    };
+
+    [;] => {
+        crate::token::Token::Semicolon
+    };
+
+    [EoF] => {
+        crate::token::Token::EoF
+    };
+
+    ['['] => {
+        crate::token::Token::LBracket
+    };
+
+    [']'] => {
+        crate::token::Token::RBracket
+    };
+
+    ['('] => {
+        crate::token::Token::LParen
+    };
+
+    [')'] => {
+        crate::token::Token::RParen
+    };
+
+    ['{'] => {
+        crate::token::Token::LBraces
+    };
+
+    ['}'] => {
+        crate::token::Token::RBraces
+    };
+
+    [+] => {
+        crate::token::Token::Plus
+    };
+
+    [-] => {
+        crate::token::Token::Minus
+    };
+
+    [*] => {
+        crate::token::Token::Asterisk
+    };
+
+    [/] => {
+        crate::token::Token::Slash
+    };
+
+    [%] => {
+        crate::token::Token::Percent
+    };
+
+    [|] => {
+        crate::token::Token::Pipe
+    };
+
+    [~] => {
+        crate::token::Token::Tilde
+    };
+
+    [!] => {
+        crate::token::Token::Exclamationmark
+    };
+
+    [<] => {
+        crate::token::Token::LessThan
+    };
+
+    [>] => {
+        crate::token::Token::GreaterThan
+    };
+
+    [&] => {
+        crate::token::Token::Ampersand
+    };
+
+    [^] => {
+        crate::token::Token::Circumflex
+    };
 }

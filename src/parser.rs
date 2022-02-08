@@ -1,8 +1,11 @@
 use std::iter::Peekable;
 
-use crate::ast::*;
-use crate::stringstore::{Sid, StringStore};
-use crate::token::Token;
+use crate::{
+    ast::{Ast, BinOpType, BlockScope, Expression, If, Loop, Statement, UnOpType},
+    stringstore::{Sid, StringStore},
+    token::Token,
+    T,
+};
 
 /// Parse the given tokens into an abstract syntax tree
 pub fn parse<T: Iterator<Item = Token>, A: IntoIterator<IntoIter = T>>(tokens: A) -> Ast {
@@ -45,15 +48,15 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         loop {
             match self.peek() {
-                Token::Semicolon => {
+                T![;] => {
                     self.next();
                 }
-                Token::EoF | Token::RBraces => break,
+                T![EoF] | T!['}'] => break,
 
-                Token::LBraces => {
+                T!['{'] => {
                     self.next();
                     prog.push(Statement::Block(self.parse_scoped_block()));
-                    if !matches!(self.next(), Token::RBraces) {
+                    if !matches!(self.next(), T!['}']) {
                         panic!("Error parsing block: Expectected closing braces '}}'");
                     }
                 }
@@ -71,22 +74,22 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     /// Parse a single statement from the tokens.
     fn parse_stmt(&mut self) -> Statement {
         match self.peek() {
-            Token::Loop => Statement::Loop(self.parse_loop()),
+            T![loop] => Statement::Loop(self.parse_loop()),
 
-            Token::Print => {
+            T![print] => {
                 self.next();
 
                 let expr = self.parse_expr();
 
                 // After a statement, there must be a semicolon
-                if !matches!(self.next(), Token::Semicolon) {
+                if !matches!(self.next(), T![;]) {
                     panic!("Expected semicolon after statement");
                 }
 
                 Statement::Print(expr)
             }
 
-            Token::If => Statement::If(self.parse_if()),
+            T![if] => Statement::If(self.parse_if()),
 
             // If it is not a loop, try to lex as an expression
             _ => {
@@ -106,7 +109,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 let stmt = Statement::Expr(expr);
 
                 // After a statement, there must be a semicolon
-                if !matches!(self.next(), Token::Semicolon) {
+                if !matches!(self.next(), T![;]) {
                     panic!("Expected semicolon after statement");
                 }
 
@@ -117,34 +120,34 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
     /// Parse an if statement from the tokens
     fn parse_if(&mut self) -> If {
-        if !matches!(self.next(), Token::If) {
+        if !matches!(self.next(), T![if]) {
             panic!("Error lexing if: Expected if token");
         }
 
         let condition = self.parse_expr();
 
-        if !matches!(self.next(), Token::LBraces) {
+        if !matches!(self.next(), T!['{']) {
             panic!("Error lexing if: Expected '{{'")
         }
 
         let body_true = self.parse_scoped_block();
 
-        if !matches!(self.next(), Token::RBraces) {
+        if !matches!(self.next(), T!['}']) {
             panic!("Error lexing if: Expected '}}'")
         }
 
         let mut body_false = BlockScope::default();
 
-        if matches!(self.peek(), Token::Else) {
+        if matches!(self.peek(), T![else]) {
             self.next();
 
-            if !matches!(self.next(), Token::LBraces) {
+            if !matches!(self.next(), T!['{']) {
                 panic!("Error lexing if: Expected '{{'")
             }
 
             body_false = self.parse_scoped_block();
 
-            if !matches!(self.next(), Token::RBraces) {
+            if !matches!(self.next(), T!['}']) {
                 panic!("Error lexing if: Expected '}}'")
             }
         }
@@ -158,7 +161,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
     /// Parse a loop statement from the tokens
     fn parse_loop(&mut self) -> Loop {
-        if !matches!(self.next(), Token::Loop) {
+        if !matches!(self.next(), T![loop]) {
             panic!("Error lexing loop: Expected loop token");
         }
 
@@ -168,14 +171,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let body;
 
         match self.next() {
-            Token::LBraces => {
+            T!['{'] => {
                 body = self.parse_scoped_block();
             }
 
-            Token::Semicolon => {
+            T![;] => {
                 advancement = Some(self.parse_expr());
 
-                if !matches!(self.next(), Token::LBraces) {
+                if !matches!(self.next(), T!['{']) {
                     panic!("Error lexing loop: Expected '{{'")
                 }
 
@@ -185,7 +188,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             _ => panic!("Error lexing loop: Expected ';' or '{{'"),
         }
 
-        if !matches!(self.next(), Token::RBraces) {
+        if !matches!(self.next(), T!['}']) {
             panic!("Error lexing loop: Expected '}}'")
         }
 
@@ -234,22 +237,22 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     fn parse_primary(&mut self) -> Expression {
         match self.next() {
             // Literal i64
-            Token::I64(val) => Expression::I64(val),
+            T![i64(val)] => Expression::I64(val),
 
             // Literal String
-            Token::String(text) => Expression::String(self.stringstore.intern_or_lookup(&text)),
+            T![str(text)] => Expression::String(self.stringstore.intern_or_lookup(&text)),
 
-            Token::LBracket => {
+            T!['['] => {
                 let size = self.parse_expr();
 
-                if !matches!(self.next(), Token::RBracket) {
+                if !matches!(self.next(), T![']']) {
                     panic!("Error parsing array literal: Expected closing bracket")
                 }
 
                 Expression::ArrayLiteral(size.into())
             }
 
-            Token::Ident(name) if matches!(self.peek(), Token::LBracket) => {
+            T![ident(name)] if matches!(self.peek(), T!['[']) => {
                 let sid = self.stringstore.intern_or_lookup(&name);
                 let stackpos = self
                     .varstack
@@ -258,19 +261,19 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                     .position(|it| *it == sid)
                     .map(|it| self.varstack.len() - it - 1)
                     .unwrap_or(usize::MAX);
-                
+
                 self.next();
 
                 let index = self.parse_expr();
 
-                if !matches!(self.next(), Token::RBracket) {
+                if !matches!(self.next(), T![']']) {
                     panic!("Error parsing array access: Expected closing bracket")
                 }
 
                 Expression::ArrayAccess(sid, stackpos, index.into())
             }
 
-            Token::Ident(name) => {
+            T![ident(name)] => {
                 let sid = self.stringstore.intern_or_lookup(&name);
                 let stackpos = self
                     .varstack
@@ -283,11 +286,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             }
 
             // Parentheses grouping
-            Token::LParen => {
+            T!['('] => {
                 let inner_expr = self.parse_expr();
 
                 // Verify that there is a closing parenthesis
-                if !matches!(self.next(), Token::RParen) {
+                if !matches!(self.next(), T![')']) {
                     panic!("Error parsing primary expr: Exepected closing parenthesis ')'");
                 }
 
@@ -295,19 +298,19 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             }
 
             // Unary negation
-            Token::Sub => {
+            T![-] => {
                 let operand = self.parse_primary();
                 Expression::UnOp(UnOpType::Negate, operand.into())
             }
 
             // Unary bitwise not (bitflip)
-            Token::Tilde => {
+            T![~] => {
                 let operand = self.parse_primary();
                 Expression::UnOp(UnOpType::BNot, operand.into())
             }
 
             // Unary logical not
-            Token::LNot => {
+            T![!] => {
                 let operand = self.parse_primary();
                 Expression::UnOp(UnOpType::LNot, operand.into())
             }
@@ -318,33 +321,36 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
     /// Get the next Token without removing it
     fn peek(&mut self) -> &Token {
-        self.tokens.peek().unwrap_or(&Token::EoF)
+        self.tokens.peek().unwrap_or(&T![EoF])
     }
 
     /// Advance to next Token and return the removed Token
     fn next(&mut self) -> Token {
-        self.tokens.next().unwrap_or(Token::EoF)
+        self.tokens.next().unwrap_or(T![EoF])
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{parse, BinOpType, Expression};
-    use crate::{parser::Statement, token::Token};
+    use crate::{
+        ast::{BinOpType, Expression, Statement},
+        parser::parse,
+        T,
+    };
 
     #[test]
     fn test_parser() {
-        // Expression: 1 + 2 * 3 + 4
-        // With precedence: (1 + (2 * 3)) + 4
+        // Expression: 1 + 2 * 3 - 4
+        // With precedence: (1 + (2 * 3)) - 4
         let tokens = [
-            Token::I64(1),
-            Token::Add,
-            Token::I64(2),
-            Token::Mul,
-            Token::I64(3),
-            Token::Sub,
-            Token::I64(4),
-            Token::Semicolon,
+            T![i64(1)],
+            T![+],
+            T![i64(2)],
+            T![*],
+            T![i64(3)],
+            T![-],
+            T![i64(4)],
+            T![;],
         ];
 
         let expected = Statement::Expr(Expression::BinOp(

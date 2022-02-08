@@ -1,7 +1,7 @@
-use crate::token::Token;
-use anyhow::Result;
 use std::{iter::Peekable, str::Chars};
 use thiserror::Error;
+
+use crate::{token::Token, T};
 
 #[derive(Debug, Error)]
 pub enum LexErr {
@@ -52,62 +52,62 @@ impl<'a> Lexer<'a> {
                 // Double character tokens
                 '>' if matches!(self.peek(), '>') => {
                     self.next();
-                    tokens.push(Token::Shr);
+                    tokens.push(T![>>]);
                 }
                 '<' if matches!(self.peek(), '<') => {
                     self.next();
-                    tokens.push(Token::Shl);
+                    tokens.push(T![<<]);
                 }
                 '=' if matches!(self.peek(), '=') => {
                     self.next();
-                    tokens.push(Token::EquEqu);
+                    tokens.push(T![==]);
                 }
                 '!' if matches!(self.peek(), '=') => {
                     self.next();
-                    tokens.push(Token::NotEqu);
+                    tokens.push(T![!=]);
                 }
                 '<' if matches!(self.peek(), '=') => {
                     self.next();
-                    tokens.push(Token::LAngleEqu);
+                    tokens.push(T![<=]);
                 }
                 '>' if matches!(self.peek(), '=') => {
                     self.next();
-                    tokens.push(Token::RAngleEqu);
+                    tokens.push(T![>=]);
                 }
                 '<' if matches!(self.peek(), '-') => {
                     self.next();
-                    tokens.push(Token::LArrow);
+                    tokens.push(T![<-]);
                 }
                 '&' if matches!(self.peek(), '&') => {
                     self.next();
-                    tokens.push(Token::LAnd);
+                    tokens.push(T![&&]);
                 }
                 '|' if matches!(self.peek(), '|') => {
                     self.next();
-                    tokens.push(Token::LOr);
+                    tokens.push(T![||]);
                 }
 
                 // Single character tokens
-                ';' => tokens.push(Token::Semicolon),
-                '+' => tokens.push(Token::Add),
-                '-' => tokens.push(Token::Sub),
-                '*' => tokens.push(Token::Mul),
-                '/' => tokens.push(Token::Div),
-                '%' => tokens.push(Token::Mod),
-                '|' => tokens.push(Token::BOr),
-                '&' => tokens.push(Token::BAnd),
-                '^' => tokens.push(Token::BXor),
-                '(' => tokens.push(Token::LParen),
-                ')' => tokens.push(Token::RParen),
-                '~' => tokens.push(Token::Tilde),
-                '<' => tokens.push(Token::LAngle),
-                '>' => tokens.push(Token::RAngle),
-                '=' => tokens.push(Token::Equ),
-                '{' => tokens.push(Token::LBraces),
-                '}' => tokens.push(Token::RBraces),
-                '!' => tokens.push(Token::LNot),
-                '[' => tokens.push(Token::LBracket),
-                ']' => tokens.push(Token::RBracket),
+                ';' => tokens.push(T![;]),
+                '+' => tokens.push(T![+]),
+                '-' => tokens.push(T![-]),
+                '*' => tokens.push(T![*]),
+                '/' => tokens.push(T![/]),
+                '%' => tokens.push(T![%]),
+                '|' => tokens.push(T![|]),
+                '&' => tokens.push(T![&]),
+                '^' => tokens.push(T![^]),
+                '(' => tokens.push(T!['(']),
+                ')' => tokens.push(T![')']),
+                '~' => tokens.push(T![~]),
+                '<' => tokens.push(T![<]),
+                '>' => tokens.push(T![>]),
+                '=' => tokens.push(T![=]),
+                '{' => tokens.push(T!['{']),
+                '}' => tokens.push(T!['}']),
+                '!' => tokens.push(T![!]),
+                '[' => tokens.push(T!['[']),
+                ']' => tokens.push(T![']']),
 
                 // Special tokens with variable length
 
@@ -151,7 +151,7 @@ impl<'a> Lexer<'a> {
 
         // Try to convert the string representation of the value to i64
         let i64val = sval.parse().map_err(|_| LexErr::NumericParse(sval))?;
-        Ok(Token::I64(i64val))
+        Ok(T![i64(i64val)])
     }
 
     /// Lex characters as a string until encountering an unescaped closing doublequoute char '"'
@@ -185,7 +185,7 @@ impl<'a> Lexer<'a> {
         // Consume closing "
         self.next();
 
-        Ok(Token::String(text))
+        Ok(T![str(text)])
     }
 
     /// Lex characters from the text as an identifier. This includes the first character passed in
@@ -206,13 +206,13 @@ impl<'a> Lexer<'a> {
 
         // Check for pre-defined keywords
         let token = match ident.as_str() {
-            "loop" => Token::Loop,
-            "print" => Token::Print,
-            "if" => Token::If,
-            "else" => Token::Else,
+            "loop" => T![loop],
+            "print" => T![print],
+            "if" => T![if],
+            "else" => T![else],
 
             // If it doesn't match a keyword, it is a normal identifier
-            _ => Token::Ident(ident),
+            _ => T![ident(ident)],
         };
 
         Ok(token)
@@ -231,31 +231,31 @@ impl<'a> Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::{lex, Token};
+    use crate::{lexer::lex, T};
 
     #[test]
     fn test_lexer() {
         let code = "33   +5*2  + 4456467*2334+3 % - / << ^ | & >>";
         let expected = vec![
-            Token::I64(33),
-            Token::Add,
-            Token::I64(5),
-            Token::Mul,
-            Token::I64(2),
-            Token::Add,
-            Token::I64(4456467),
-            Token::Mul,
-            Token::I64(2334),
-            Token::Add,
-            Token::I64(3),
-            Token::Mod,
-            Token::Sub,
-            Token::Div,
-            Token::Shl,
-            Token::BXor,
-            Token::BOr,
-            Token::BAnd,
-            Token::Shr,
+            T![i64(33)],
+            T![+],
+            T![i64(5)],
+            T![*],
+            T![i64(2)],
+            T![+],
+            T![i64(4456467)],
+            T![*],
+            T![i64(2334)],
+            T![+],
+            T![i64(3)],
+            T![%],
+            T![-],
+            T![/],
+            T![<<],
+            T![^],
+            T![|],
+            T![&],
+            T![>>],
         ];
 
         let actual = lex(code).unwrap();
