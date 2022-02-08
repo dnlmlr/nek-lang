@@ -20,118 +20,100 @@ pub enum LexErr {
 
 /// Lex the provided code into a Token Buffer
 pub fn lex(code: &str) -> Result<Vec<Token>, LexErr> {
-    let mut lexer = Lexer::new(code);
+    let lexer = Lexer::new(code);
     lexer.lex()
 }
 
 struct Lexer<'a> {
     /// The sourcecode text as an iterator over the chars
     code: Peekable<Chars<'a>>,
+    /// The lexed tokens
+    tokens: Vec<Token>,
+    /// The sourcecode character that is currently being lexed
+    current_char: char,
 }
 
 impl<'a> Lexer<'a> {
     fn new(code: &'a str) -> Self {
         let code = code.chars().peekable();
-        Self { code }
+        let tokens = Vec::new();
+        let current_char = '\0';
+        Self {
+            code,
+            tokens,
+            current_char,
+        }
     }
 
-    fn lex(&mut self) -> Result<Vec<Token>, LexErr> {
-        let mut tokens = Vec::new();
-
+    fn lex(mut self) -> Result<Vec<Token>, LexErr> {
         loop {
-            match self.next() {
+            self.current_char = self.next();
+            match (self.current_char, self.peek()) {
                 // Stop lexing at EOF
-                '\0' => break,
+                ('\0', _) => break,
 
                 // Skip whitespace
-                ' ' | '\t' | '\n' | '\r' => (),
+                (' ' | '\t' | '\n' | '\r', _) => (),
 
                 // Line comment. Consume every char until linefeed (next line)
-                '/' if matches!(self.peek(), '/') => while !matches!(self.next(), '\n' | '\0') {},
+                ('/', '/') => while !matches!(self.next(), '\n' | '\0') {},
 
                 // Double character tokens
-                '>' if matches!(self.peek(), '>') => {
-                    self.next();
-                    tokens.push(T![>>]);
-                }
-                '<' if matches!(self.peek(), '<') => {
-                    self.next();
-                    tokens.push(T![<<]);
-                }
-                '=' if matches!(self.peek(), '=') => {
-                    self.next();
-                    tokens.push(T![==]);
-                }
-                '!' if matches!(self.peek(), '=') => {
-                    self.next();
-                    tokens.push(T![!=]);
-                }
-                '<' if matches!(self.peek(), '=') => {
-                    self.next();
-                    tokens.push(T![<=]);
-                }
-                '>' if matches!(self.peek(), '=') => {
-                    self.next();
-                    tokens.push(T![>=]);
-                }
-                '<' if matches!(self.peek(), '-') => {
-                    self.next();
-                    tokens.push(T![<-]);
-                }
-                '&' if matches!(self.peek(), '&') => {
-                    self.next();
-                    tokens.push(T![&&]);
-                }
-                '|' if matches!(self.peek(), '|') => {
-                    self.next();
-                    tokens.push(T![||]);
-                }
+                ('>', '>') => self.push_tok_consume(T![>>]),
+                ('<', '<') => self.push_tok_consume(T![<<]),
+                ('=', '=') => self.push_tok_consume(T![==]),
+                ('!', '=') => self.push_tok_consume(T![!=]),
+                ('<', '=') => self.push_tok_consume(T![<=]),
+                ('>', '=') => self.push_tok_consume(T![>=]),
+                ('<', '-') => self.push_tok_consume(T![<-]),
+                ('&', '&') => self.push_tok_consume(T![&&]),
+                ('|', '|') => self.push_tok_consume(T![||]),
 
                 // Single character tokens
-                ';' => tokens.push(T![;]),
-                '+' => tokens.push(T![+]),
-                '-' => tokens.push(T![-]),
-                '*' => tokens.push(T![*]),
-                '/' => tokens.push(T![/]),
-                '%' => tokens.push(T![%]),
-                '|' => tokens.push(T![|]),
-                '&' => tokens.push(T![&]),
-                '^' => tokens.push(T![^]),
-                '(' => tokens.push(T!['(']),
-                ')' => tokens.push(T![')']),
-                '~' => tokens.push(T![~]),
-                '<' => tokens.push(T![<]),
-                '>' => tokens.push(T![>]),
-                '=' => tokens.push(T![=]),
-                '{' => tokens.push(T!['{']),
-                '}' => tokens.push(T!['}']),
-                '!' => tokens.push(T![!]),
-                '[' => tokens.push(T!['[']),
-                ']' => tokens.push(T![']']),
+                (';', _) => self.push_tok(T![;]),
+                ('+', _) => self.push_tok(T![+]),
+                ('-', _) => self.push_tok(T![-]),
+                ('*', _) => self.push_tok(T![*]),
+                ('/', _) => self.push_tok(T![/]),
+                ('%', _) => self.push_tok(T![%]),
+                ('|', _) => self.push_tok(T![|]),
+                ('&', _) => self.push_tok(T![&]),
+                ('^', _) => self.push_tok(T![^]),
+                ('(', _) => self.push_tok(T!['(']),
+                (')', _) => self.push_tok(T![')']),
+                ('~', _) => self.push_tok(T![~]),
+                ('<', _) => self.push_tok(T![<]),
+                ('>', _) => self.push_tok(T![>]),
+                ('=', _) => self.push_tok(T![=]),
+                ('{', _) => self.push_tok(T!['{']),
+                ('}', _) => self.push_tok(T!['}']),
+                ('!', _) => self.push_tok(T![!]),
+                ('[', _) => self.push_tok(T!['[']),
+                (']', _) => self.push_tok(T![']']),
 
                 // Special tokens with variable length
 
                 // Lex multiple characters together as numbers
-                ch @ '0'..='9' => tokens.push(self.lex_number(ch)?),
+                ('0'..='9', _) => self.lex_number()?,
 
                 // Lex multiple characters together as a string
-                '"' => tokens.push(self.lex_str()?),
+                ('"', _) => self.lex_str()?,
 
                 // Lex multiple characters together as identifier
-                ch @ ('a'..='z' | 'A'..='Z' | '_') => tokens.push(self.lex_identifier(ch)?),
+                ('a'..='z' | 'A'..='Z' | '_', _) => self.lex_identifier()?,
 
-                ch => Err(LexErr::UnexpectedChar(ch))?,
+                (ch, _) => Err(LexErr::UnexpectedChar(ch))?,
             }
         }
 
-        Ok(tokens)
+        Ok(self.tokens)
     }
 
-    /// Lex multiple characters as a number until encountering a non numeric digit. This includes
-    /// the first character
-    fn lex_number(&mut self, first_char: char) -> Result<Token, LexErr> {
+    /// Lex multiple characters as a number until encountering a non numeric digit. The 
+    /// successfully lexed i64 literal token is appended to the stored tokens.
+    fn lex_number(&mut self) -> Result<(), LexErr> {
         // String representation of the integer value
-        let mut sval = String::from(first_char);
+        let mut sval = String::from(self.current_char);
 
         // Do as long as a next char exists and it is a numeric char
         loop {
@@ -151,11 +133,15 @@ impl<'a> Lexer<'a> {
 
         // Try to convert the string representation of the value to i64
         let i64val = sval.parse().map_err(|_| LexErr::NumericParse(sval))?;
-        Ok(T![i64(i64val)])
+
+        self.push_tok(T![i64(i64val)]);
+
+        Ok(())
     }
 
-    /// Lex characters as a string until encountering an unescaped closing doublequoute char '"'
-    fn lex_str(&mut self) -> Result<Token, LexErr> {
+    /// Lex characters as a string until encountering an unescaped closing doublequoute char '"'. 
+    /// The successfully lexed string literal token is appended to the stored tokens.
+    fn lex_str(&mut self) -> Result<(), LexErr> {
         // Opening " was consumed in match
 
         let mut text = String::new();
@@ -185,12 +171,15 @@ impl<'a> Lexer<'a> {
         // Consume closing "
         self.next();
 
-        Ok(T![str(text)])
+        self.push_tok(T![str(text)]);
+
+        Ok(())
     }
 
-    /// Lex characters from the text as an identifier. This includes the first character passed in
-    fn lex_identifier(&mut self, first_char: char) -> Result<Token, LexErr> {
-        let mut ident = String::from(first_char);
+    /// Lex characters from the text as an identifier. The successfully lexed ident or keyword 
+    /// token is appended to the stored tokens.
+    fn lex_identifier(&mut self) -> Result<(), LexErr> {
+        let mut ident = String::from(self.current_char);
 
         // Do as long as a next char exists and it is a valid char for an identifier
         loop {
@@ -215,7 +204,20 @@ impl<'a> Lexer<'a> {
             _ => T![ident(ident)],
         };
 
-        Ok(token)
+        self.push_tok(token);
+
+        Ok(())
+    }
+
+    /// Push the given token into the stored tokens
+    fn push_tok(&mut self, token: Token) {
+        self.tokens.push(token);
+    }
+
+    /// Same as `push_tok` but also consumes the next token, removing it from the code iter
+    fn push_tok_consume(&mut self, token: Token) {
+        self.next();
+        self.tokens.push(token);
     }
 
     /// Advance to next character and return the removed char
