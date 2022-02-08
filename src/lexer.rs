@@ -109,7 +109,7 @@ impl<'a> Lexer<'a> {
         Ok(self.tokens)
     }
 
-    /// Lex multiple characters as a number until encountering a non numeric digit. The 
+    /// Lex multiple characters as a number until encountering a non numeric digit. The
     /// successfully lexed i64 literal token is appended to the stored tokens.
     fn lex_number(&mut self) -> Result<(), LexErr> {
         // String representation of the integer value
@@ -139,7 +139,7 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
-    /// Lex characters as a string until encountering an unescaped closing doublequoute char '"'. 
+    /// Lex characters as a string until encountering an unescaped closing doublequoute char '"'.
     /// The successfully lexed string literal token is appended to the stored tokens.
     fn lex_str(&mut self) -> Result<(), LexErr> {
         // Opening " was consumed in match
@@ -176,7 +176,7 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
-    /// Lex characters from the text as an identifier. The successfully lexed ident or keyword 
+    /// Lex characters from the text as an identifier. The successfully lexed ident or keyword
     /// token is appended to the stored tokens.
     fn lex_identifier(&mut self) -> Result<(), LexErr> {
         let mut ident = String::from(self.current_char);
@@ -237,27 +237,47 @@ mod tests {
 
     #[test]
     fn test_lexer() {
-        let code = "33   +5*2  + 4456467*2334+3 % - / << ^ | & >>";
+        let code = r#"53+1-567_000 * / % | ~ ! < > & ^ ({[]});= <- >= <=
+            == != && || << >> loop if else print my_123var "hello \t world\r\n\"\\""#;
         let expected = vec![
-            T![i64(33)],
+            T![i64(53)],
             T![+],
-            T![i64(5)],
-            T![*],
-            T![i64(2)],
-            T![+],
-            T![i64(4456467)],
-            T![*],
-            T![i64(2334)],
-            T![+],
-            T![i64(3)],
-            T![%],
+            T![i64(1)],
             T![-],
+            T![i64(567_000)],
+            T![*],
             T![/],
-            T![<<],
-            T![^],
+            T![%],
             T![|],
+            T![~],
+            T![!],
+            T![<],
+            T![>],
             T![&],
+            T![^],
+            T!['('],
+            T!['{'],
+            T!['['],
+            T![']'],
+            T!['}'],
+            T![')'],
+            T![;],
+            T![=],
+            T![<-],
+            T![>=],
+            T![<=],
+            T![==],
+            T![!=],
+            T![&&],
+            T![||],
+            T![<<],
             T![>>],
+            T![loop],
+            T![if],
+            T![else],
+            T![print],
+            T![ident("my_123var".to_string())],
+            T![str("hello \t world\r\n\"\\".to_string())],
         ];
 
         let actual = lex(code).unwrap();
