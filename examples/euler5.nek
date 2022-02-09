@@ -10,7 +10,7 @@ loop should_continue {
 
     i <- 20;
     loop i >= 2; i = i - 1 {
-        if num % i != 0 {
+        if num % i {
             should_continue = 1;
             
             // break
@@ -18,7 +18,7 @@ loop should_continue {
         }
     }
 
-    if should_continue == 1 {
+    if should_continue {
         num = num + 20;
     }
 }
