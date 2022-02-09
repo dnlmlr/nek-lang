@@ -1,4 +1,4 @@
-use crate::{ast::BinOpType, T};
+use crate::{ast::{BinOpType, UnOpType}, T};
 
 /// Language keywords
 #[derive(Debug, PartialEq, Eq)]
@@ -164,6 +164,16 @@ impl Token {
 
             T![<-] => BinOpType::Declare,
             T![=] => BinOpType::Assign,
+
+            _ => return None,
+        })
+    }
+
+    pub fn try_to_unop(&self) -> Option<UnOpType> {
+        Some(match self {
+            T![-] => UnOpType::Negate,
+            T![!] => UnOpType::LNot,
+            T![~] => UnOpType::BNot,
 
             _ => return None,
         })

@@ -1,7 +1,8 @@
 use std::{
     env::args,
     fs,
-    io::{stdin, stdout, Write}, process::exit,
+    // io::{stdin, stdout, Write},
+    process::exit,
 };
 
 use nek_lang::interpreter::Interpreter;
@@ -11,7 +12,7 @@ struct CliConfig {
     print_tokens: bool,
     print_ast: bool,
     no_optimizations: bool,
-    interactive: bool,
+    // interactive: bool,
     file: Option<String>,
 }
 
@@ -24,7 +25,7 @@ fn main() {
             "--token" | "-t" => conf.print_tokens = true,
             "--ast" | "-a" => conf.print_ast = true,
             "--no-opt" | "-n" => conf.no_optimizations = true,
-            "--interactive" | "-i" => conf.interactive = true,
+            // "--interactive" | "-i" => conf.interactive = true,
             "--help" | "-h" => print_help(),
             file if conf.file.is_none() => conf.file = Some(file.to_string()),
             _ => panic!("Invalid argument: '{}'", arg),
@@ -42,23 +43,28 @@ fn main() {
         interpreter.run_str(&code);
     }
 
-    if conf.interactive || conf.file.is_none() {
-        let mut code = String::new();
+    // TODO: The interactive prompt is currently broken due to the precalculated stack positions.
+    // For this to still work, there needs to be a way to keep the stack in the interpreter after
+    // runing once. Also somehow the stringstore and var stack from the last parsing stages would
+    // need to be reused for the parser to work correctly
 
-        loop {
-            print!(">> ");
-            stdout().flush().unwrap();
+    // if conf.interactive || conf.file.is_none() {
+    //     let mut code = String::new();
 
-            code.clear();
-            stdin().read_line(&mut code).unwrap();
+    //     loop {
+    //         print!(">> ");
+    //         stdout().flush().unwrap();
 
-            if code.trim() == "exit" {
-                break;
-            }
+    //         code.clear();
+    //         stdin().read_line(&mut code).unwrap();
 
-            interpreter.run_str(&code);
-        }
-    }
+    //         if code.trim() == "exit" {
+    //             break;
+    //         }
+
+    //         interpreter.run_str(&code);
+    //     }
+    // }
 }
 
 fn print_help() {
@@ -67,7 +73,7 @@ fn print_help() {
     println!("-t, --token        Print the lexed tokens");
     println!("-a, --ast          Print the abstract syntax tree");
     println!("-n, --no-opt       Disable the AST optimizations");
-    println!("-i, --interactive  Interactive mode");
+    // println!("-i, --interactive  Interactive mode");
     println!("-h, --help         Show this help screen");
     exit(0);
 }

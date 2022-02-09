@@ -2,7 +2,7 @@ use std::iter::Peekable;
 use thiserror::Error;
 
 use crate::{
-    ast::{Ast, BinOpType, BlockScope, Expression, If, Loop, Statement, UnOpType},
+    ast::{Ast, BinOpType, BlockScope, Expression, If, Loop, Statement},
     stringstore::{Sid, StringStore},
     token::Token,
     T,
@@ -282,25 +282,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 inner_expr
             }
 
-            // Unary negation
-            T![-] => {
-                let operand = self.parse_primary()?;
-                Expression::UnOp(UnOpType::Negate, operand.into())
-            }
-
-            // Unary bitwise not (bitflip)
-            T![~] => {
-                let operand = self.parse_primary()?;
-                Expression::UnOp(UnOpType::BNot, operand.into())
-            }
-
-            // Unary logical not
-            T![!] => {
-                let operand = self.parse_primary()?;
-                Expression::UnOp(UnOpType::LNot, operand.into())
-            }
-
-            tok => return Err(ParseErr::UnexpectedToken(tok, "primary".to_string())),
+            // Unary operations or invalid token
+            tok => match tok.try_to_unop() {
+                Some(uot) => Expression::UnOp(uot, self.parse_primary()?.into()),
+                None => return Err(ParseErr::UnexpectedToken(tok, "primary".to_string())),
+            },
         };
 
         Ok(primary)
