@@ -1,10 +1,31 @@
 use std::cell::RefCell;
+use thiserror::Error;
 
 use crate::{
-    ast::{BlockScope, BinOpType, Expression, If, Statement, UnOpType, Ast},
+    ast::{Ast, BinOpType, BlockScope, Expression, If, Statement, UnOpType},
+    astoptimizer::{AstOptimizer, SimpleAstOptimizer},
     lexer::lex,
-    parser::parse, stringstore::{Sid, StringStore}, astoptimizer::{SimpleAstOptimizer, AstOptimizer},
+    parser::parse,
+    stringstore::{Sid, StringStore},
 };
+
+#[derive(Debug, Error)]
+pub enum RuntimeError {
+    #[error("Invalid error Index: {}", 0.to_string())]
+    InvalidArrayIndex(Value),
+    #[error("Variable used but not declared: {0}")]
+    VarUsedNotDeclared(String),
+    #[error("Can't index into non-array variable: {0}")]
+    TryingToIndexNonArray(String),
+    #[error("Invalid value type for unary operation: {}", 0.to_string())]
+    UnOpInvalidType(Value),
+    #[error("Incompatible binary operations. Operands don't match: {} {}", 0.to_string(), 1.to_string())]
+    BinOpIncompatibleTypes(Value, Value),
+    #[error("Array access out of bounds: Accessed {0}, size is {1}")]
+    ArrayOutOfBounds(usize, usize),
+    #[error("Division by zero")]
+    DivideByZero,
+}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value {
@@ -23,7 +44,6 @@ pub struct Interpreter {
     pub capture_output: bool,
     output: Vec<Value>,
 
-
     // Variable table stores the runtime values of variables
     vartable: Vec<Value>,
 
@@ -32,7 +52,10 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self { optimize_ast: true, ..Self::default() }
+        Self {
+            optimize_ast: true,
+            ..Self::default()
+        }
     }
 
     pub fn output(&self) -> &[Value] {
@@ -55,63 +78,63 @@ impl Interpreter {
 
         let ast = parse(tokens).unwrap();
 
-        self.run_ast(ast);
+        self.run_ast(ast).unwrap();
     }
 
-    pub fn run_ast(&mut self, mut ast: Ast) {
+    pub fn run_ast(&mut self, mut ast: Ast) -> Result<(), RuntimeError> {
         if self.optimize_ast {
             ast = SimpleAstOptimizer::optimize(ast);
         }
-        
+
         if self.print_ast {
             println!("{:#?}", ast.main);
         }
 
         self.stringstore = ast.stringstore;
 
-        self.run_block(&ast.main);
+        self.run_block(&ast.main)
     }
 
-    pub fn run_block(&mut self, prog: &BlockScope) {
+    pub fn run_block(&mut self, prog: &BlockScope) -> Result<(), RuntimeError> {
         let framepointer = self.vartable.len();
 
         for stmt in prog {
             match stmt {
                 Statement::Expr(expr) => {
-                    self.resolve_expr(expr);
+                    self.resolve_expr(expr)?;
                 }
 
                 Statement::Declaration(_sid, _idx, rhs) => {
-                    let rhs = self.resolve_expr(rhs);
+                    let rhs = self.resolve_expr(rhs)?;
                     self.vartable.push(rhs);
                 }
 
                 Statement::Block(block) => {
-                    self.run_block(block);
+                    self.run_block(block)?;
                 }
 
                 Statement::Loop(looop) => {
                     // loop runs as long condition != 0
                     loop {
-                        if matches!(self.resolve_expr(&looop.condition), Value::I64(0)) {
+                        if matches!(self.resolve_expr(&looop.condition)?, Value::I64(0)) {
                             break;
                         }
 
-                        self.run_block(&looop.body);
+                        self.run_block(&looop.body)?;
 
                         if let Some(adv) = &looop.advancement {
-                            self.resolve_expr(&adv);
+                            self.resolve_expr(&adv)?;
                         }
                     }
                 }
 
                 Statement::Print(expr) => {
-                    let result = self.resolve_expr(expr);
+                    let result = self.resolve_expr(expr)?;
 
                     if self.capture_output {
                         self.output.push(result)
                     } else {
-                        self.print_value(&result);
+                        print!("{}", self.value_to_string(&result));
                     }
                 }
 
@@ -120,115 +143,175 @@ impl Interpreter {
                     body_true,
                     body_false,
                 }) => {
-                    if matches!(self.resolve_expr(condition), Value::I64(0)) {
-                        self.run_block(body_false);
+                    if matches!(self.resolve_expr(condition)?, Value::I64(0)) {
+                        self.run_block(body_false)?;
                     } else {
-                        self.run_block(body_true);
+                        self.run_block(body_true)?;
                     }
                 }
             }
         }
 
         self.vartable.truncate(framepointer);
+
+        Ok(())
     }
 
-    fn resolve_expr(&mut self, expr: &Expression) -> Value {
-        match expr {
+    fn resolve_expr(&mut self, expr: &Expression) -> Result<Value, RuntimeError> {
+        let val = match expr {
             Expression::I64(val) => Value::I64(*val),
             Expression::ArrayLiteral(size) => {
-                let size = match self.resolve_expr(size) {
-                    Value::I64(size) => size,
-                    _ => panic!("Array size needs to be I64"),
+                let size = match self.resolve_expr(size)? {
+                    Value::I64(size) if !size.is_negative() => size,
+                    val => return Err(RuntimeError::InvalidArrayIndex(val)),
                 };
                 Value::Array(RefCell::new(vec![Value::I64(0); size as usize]))
             }
             Expression::String(text) => Value::String(text.clone()),
-            Expression::BinOp(bo, lhs, rhs) => self.resolve_binop(bo, lhs, rhs),
-            Expression::UnOp(uo, operand) => self.resolve_unop(uo, operand),
-            Expression::Var(name, idx) => self.resolve_var(*name, *idx),
-            Expression::ArrayAccess(name, idx, arr_idx) => self.resolve_array_access(*name, *idx, arr_idx),
-        }
+            Expression::BinOp(bo, lhs, rhs) => self.resolve_binop(bo, lhs, rhs)?,
+            Expression::UnOp(uo, operand) => self.resolve_unop(uo, operand)?,
+            Expression::Var(name, idx) => self.resolve_var(*name, *idx)?,
+            Expression::ArrayAccess(name, idx, arr_idx) => {
+                self.resolve_array_access(*name, *idx, arr_idx)?
+            }
+        };
+
+        Ok(val)
     }
 
-    fn resolve_array_access(&mut self, name: Sid, idx: usize, arr_idx: &Expression) -> Value {
-        let arr_idx = match self.resolve_expr(arr_idx) {
-            Value::I64(size) => size,
-            _ => panic!("Array index needs to be I64"),
+    fn resolve_array_access(
+        &mut self,
+        name: Sid,
+        idx: usize,
+        arr_idx: &Expression,
+    ) -> Result<Value, RuntimeError> {
+        let arr_idx = match self.resolve_expr(arr_idx)? {
+            Value::I64(size) if !size.is_negative() => size,
+            val => return Err(RuntimeError::InvalidArrayIndex(val)),
         };
 
         let val = match self.get_var(idx) {
             Some(val) => val,
-            None => panic!("Variable '{}' used but not declared", self.stringstore.lookup(name).unwrap()),
+            None => {
+                return Err(RuntimeError::VarUsedNotDeclared(
+                    self.stringstore
+                        .lookup(name)
+                        .cloned()
+                        .unwrap_or_else(|| "<unknown>".to_string()),
+                ))
+            }
         };
 
         let arr = match val {
             Value::Array(arr) => arr,
-            _ => panic!("Variable '{}' used but not declared", self.stringstore.lookup(name).unwrap()),
+            _ => {
+                return Err(RuntimeError::TryingToIndexNonArray(
+                    self.stringstore
+                        .lookup(name)
+                        .cloned()
+                        .unwrap_or_else(|| "<unknown>".to_string()),
+                ))
+            }
         };
 
         let arr = arr.borrow_mut();
-        arr.get(arr_idx as usize).cloned().expect("Runtime error: Invalid array index")
+        arr.get(arr_idx as usize)
+            .cloned()
+            .ok_or(RuntimeError::ArrayOutOfBounds(arr_idx as usize, arr.len()))
     }
 
-    fn resolve_var(&mut self, name: Sid, idx: usize) -> Value {
+    fn resolve_var(&mut self, name: Sid, idx: usize) -> Result<Value, RuntimeError> {
         match self.get_var(idx) {
-            Some(val) => val,
-            None => panic!("Variable '{}' used but not declared", self.stringstore.lookup(name).unwrap()),
+            Some(val) => Ok(val),
+            None => {
+                return Err(RuntimeError::VarUsedNotDeclared(
+                    self.stringstore
+                        .lookup(name)
+                        .cloned()
+                        .unwrap_or_else(|| "<unknown>".to_string()),
+                ))
+            }
         }
     }
 
-    fn resolve_unop(&mut self, uo: &UnOpType, operand: &Expression) -> Value {
-        let operand = self.resolve_expr(operand);
+    fn resolve_unop(&mut self, uo: &UnOpType, operand: &Expression) -> Result<Value, RuntimeError> {
+        let operand = self.resolve_expr(operand)?;
 
-        match (operand, uo) {
+        Ok(match (operand, uo) {
             (Value::I64(val), UnOpType::Negate) => Value::I64(-val),
             (Value::I64(val), UnOpType::BNot) => Value::I64(!val),
             (Value::I64(val), UnOpType::LNot) => Value::I64(if val == 0 { 1 } else { 0 }),
-            _ => panic!("Value type is not compatible with unary operation"),
-        }
+            (val, _) => return Err(RuntimeError::UnOpInvalidType(val)),
+        })
     }
 
-    fn resolve_binop(&mut self, bo: &BinOpType, lhs: &Expression, rhs: &Expression) -> Value {
-        let rhs = self.resolve_expr(rhs);
+    fn resolve_binop(
+        &mut self,
+        bo: &BinOpType,
+        lhs: &Expression,
+        rhs: &Expression,
+    ) -> Result<Value, RuntimeError> {
+        let rhs = self.resolve_expr(rhs)?;
 
         match (&bo, &lhs) {
             (BinOpType::Assign, Expression::Var(name, idx)) => {
                 match self.get_var_mut(*idx) {
                     Some(val) => *val = rhs.clone(),
-                    None => panic!("Runtime Error: Trying to assign value to undeclared variable: {:?}", self.stringstore.lookup(*name)),
+                    None => {
+                        return Err(RuntimeError::VarUsedNotDeclared(
+                            self.stringstore
+                                .lookup(*name)
+                                .cloned()
+                                .unwrap_or_else(|| "<unknown>".to_string()),
+                        ))
+                    }
                 }
-                return rhs;
+                return Ok(rhs);
             }
             (BinOpType::Assign, Expression::ArrayAccess(name, idx, arr_idx)) => {
-                let arr_idx = match self.resolve_expr(arr_idx) {
-                    Value::I64(size) => size,
-                    _ => panic!("Array index needs to be I64"),
+                let arr_idx = match self.resolve_expr(arr_idx)? {
+                    Value::I64(size) if !size.is_negative() => size,
+                    val => return Err(RuntimeError::InvalidArrayIndex(val)),
                 };
 
                 let val = match self.get_var_mut(*idx) {
                     Some(val) => val,
-                    None => panic!("Runtime Error: Trying to assign value to undeclared variable: {:?}", self.stringstore.lookup(*name)),
+                    None => {
+                        return Err(RuntimeError::VarUsedNotDeclared(
+                            self.stringstore
+                                .lookup(*name)
+                                .cloned()
+                                .unwrap_or_else(|| "<unknown>".to_string()),
+                        ))
+                    }
                 };
 
                 match val {
                     Value::Array(arr) => arr.borrow_mut()[arr_idx as usize] = rhs.clone(),
-                    _ => panic!("Variable '{}' used but not declared", self.stringstore.lookup(*name).unwrap()),
+                    _ => {
+                        return Err(RuntimeError::TryingToIndexNonArray(
+                            self.stringstore
+                                .lookup(*name)
+                                .cloned()
+                                .unwrap_or_else(|| "<unknown>".to_string()),
+                        ))
+                    }
                 }
 
-                return rhs;
+                return Ok(rhs);
             }
             _ => (),
         }
 
-        let lhs = self.resolve_expr(lhs);
+        let lhs = self.resolve_expr(lhs)?;
 
-        match (lhs, rhs) {
+        let result = match (lhs, rhs) {
             (Value::I64(lhs), Value::I64(rhs)) => match bo {
                 BinOpType::Add => Value::I64(lhs + rhs),
                 BinOpType::Mul => Value::I64(lhs * rhs),
                 BinOpType::Sub => Value::I64(lhs - rhs),
-                BinOpType::Div => Value::I64(lhs / rhs),
-                BinOpType::Mod => Value::I64(lhs % rhs),
+                BinOpType::Div => Value::I64(lhs.checked_div(rhs).ok_or(RuntimeError::DivideByZero)?),
+                BinOpType::Mod => Value::I64(lhs.checked_rem(rhs).ok_or(RuntimeError::DivideByZero)?),
                 BinOpType::BOr => Value::I64(lhs | rhs),
                 BinOpType::BAnd => Value::I64(lhs & rhs),
                 BinOpType::BXor => Value::I64(lhs ^ rhs),
@@ -245,18 +328,19 @@ impl Interpreter {
 
                 BinOpType::Assign => unreachable!(),
             },
-            _ => panic!("Value types are not compatible"),
-        }
+            (lhs, rhs) => return Err(RuntimeError::BinOpIncompatibleTypes(lhs, rhs)),
+        };
+
+        Ok(result)
     }
 
-    fn print_value(&self, val: &Value) {
+    fn value_to_string(&self, val: &Value) -> String {
         match val {
-            Value::I64(val) => print!("{}", val),
-            Value::Array(val) => print!("{:?}", val.borrow()),
-            Value::String(text) => print!("{}", self.stringstore.lookup(*text).unwrap()),
+            Value::I64(val) => format!("{}", val),
+            Value::Array(val) => format!("{:?}", val.borrow()),
+            Value::String(text) => format!("{}", self.stringstore.lookup(*text).unwrap()),
         }
     }
-
 }
 
 #[cfg(test)]
@@ -287,7 +371,7 @@ mod test {
         let expected = Value::I64(11);
 
         let mut interpreter = Interpreter::new();
-        let actual = interpreter.resolve_expr(&ast);
+        let actual = interpreter.resolve_expr(&ast).unwrap();
 
         assert_eq!(expected, actual);
     }
