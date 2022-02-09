@@ -53,7 +53,7 @@ impl Interpreter {
             println!("Tokens: {:?}", tokens);
         }
 
-        let ast = parse(tokens);
+        let ast = parse(tokens).unwrap();
 
         self.run_ast(ast);
     }
