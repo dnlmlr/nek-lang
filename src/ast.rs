@@ -59,9 +59,6 @@ pub enum BinOpType {
 
     /// Assign value to variable
     Assign,
-
-    /// Declare new variable with value
-    Declare,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -119,6 +116,7 @@ pub struct If {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Statement {
+    Declaration(Sid, usize, Expression),
     Expr(Expression),
     Block(BlockScope),
     Loop(Loop),
@@ -144,7 +142,6 @@ impl BinOpType {
 
     pub fn precedence(&self) -> u8 {
         match self {
-            BinOpType::Declare => 0,
             BinOpType::Assign => 1,
             BinOpType::LOr => 2,
             BinOpType::LAnd => 3,

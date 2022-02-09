@@ -1,10 +1,10 @@
-use std::iter::Peekable;
 use thiserror::Error;
 
 use crate::{
-    ast::{Ast, BinOpType, BlockScope, Expression, If, Loop, Statement},
+    ast::{Ast, BlockScope, Expression, If, Loop, Statement},
     stringstore::{Sid, StringStore},
     token::Token,
+    util::{PutBackIter, PutBackableExt},
     T,
 };
 
@@ -14,6 +14,8 @@ pub enum ParseErr {
     UnexpectedToken(Token, String),
     #[error("Left hand side of declaration is not a variable")]
     DeclarationOfNonVar,
+    #[error("Use of undefined variable \"{0}\"")]
+    UseOfUndeclaredVar(String),
 }
 
 type ResPE<T> = Result<T, ParseErr>;
@@ -34,7 +36,7 @@ pub fn parse<T: Iterator<Item = Token>, A: IntoIterator<IntoIter = T>>(tokens: A
 }
 
 struct Parser<T: Iterator<Item = Token>> {
-    tokens: Peekable<T>,
+    tokens: PutBackIter<T>,
     string_store: StringStore,
     var_stack: Vec<Sid>,
 }
@@ -42,7 +44,7 @@ struct Parser<T: Iterator<Item = Token>> {
 impl<T: Iterator<Item = Token>> Parser<T> {
     /// Create a new parser to parse the given Token Stream
     pub fn new<A: IntoIterator<IntoIter = T>>(tokens: A) -> Self {
-        let tokens = tokens.into_iter().peekable();
+        let tokens = tokens.into_iter().putbackable();
         let string_store = StringStore::new();
         let var_stack = Vec::new();
         Self {
@@ -71,6 +73,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 T![;] => {
                     self.next();
                 }
+
                 T![EoF] | T!['}'] => break,
 
                 T!['{'] => {
@@ -108,22 +111,25 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
             T![if] => Statement::If(self.parse_if()?),
 
-            // If it is not a loop, try to lex as an expression
             _ => {
-                let mut expr = self.parse_expr()?;
+                let first = self.next();
 
-                match &mut expr {
-                    Expression::BinOp(BinOpType::Declare, lhs, _) => match lhs.as_mut() {
-                        Expression::Var(sid, sp) => {
-                            *sp = self.var_stack.len();
-                            self.var_stack.push(*sid);
-                        }
-                        _ => return Err(ParseErr::DeclarationOfNonVar),
-                    },
-                    _ => (),
-                }
+                let stmt = match (first, self.peek()) {
+                    (T![ident(name)], T![<-]) => {
+                        self.next();
 
-                let stmt = Statement::Expr(expr);
+                        let sid = self.string_store.intern_or_lookup(&name);
+                        let sp = self.var_stack.len();
+                        self.var_stack.push(sid);
+
+                        let rhs = self.parse_expr()?;
+                        Statement::Declaration(sid, sp, rhs)
+                    }
+                    (first, _) => {
+                        self.putback(first);
+                        Statement::Expr(self.parse_expr()?)
+                    }
+                };
 
                 // After a statement, there must be a semicolon
                 validate_next!(self, T![;], ";");
@@ -255,7 +261,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             // index as an expression
             T![ident(name)] if self.peek() == &T!['['] => {
                 let sid = self.string_store.intern_or_lookup(&name);
-                let stackpos = self.get_stackpos(sid);
+                let stackpos = self.get_stackpos(sid)?;
 
                 self.next();
 
@@ -268,7 +274,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
             T![ident(name)] => {
                 let sid = self.string_store.intern_or_lookup(&name);
-                let stackpos = self.get_stackpos(sid);
+                let stackpos = self.get_stackpos(sid)?;
                 Expression::Var(sid, stackpos)
             }
 
@@ -292,18 +298,27 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Ok(primary)
     }
 
-    fn get_stackpos(&self, varid: Sid) -> usize {
+    fn get_stackpos(&self, varid: Sid) -> ResPE<usize> {
         self.var_stack
             .iter()
             .rev()
             .position(|it| *it == varid)
             .map(|it| self.var_stack.len() - it - 1)
-            .unwrap_or(usize::MAX)
+            .ok_or(ParseErr::UseOfUndeclaredVar(
+                self.string_store
+                    .lookup(varid)
+                    .map(String::from)
+                    .unwrap_or("<unknown>".to_string()),
+            ))
     }
 
     /// Get the next Token without removing it
     fn peek(&mut self) -> &Token {
         self.tokens.peek().unwrap_or(&T![EoF])
+    }
+
+    fn putback(&mut self, tok: Token) {
+        self.tokens.putback(tok);
     }
 
     /// Advance to next Token and return the removed Token

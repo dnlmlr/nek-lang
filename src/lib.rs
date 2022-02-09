@@ -5,6 +5,7 @@ pub mod parser;
 pub mod token;
 pub mod stringstore;
 pub mod astoptimizer;
+pub mod util;
 
 #[cfg(test)]
 mod tests {

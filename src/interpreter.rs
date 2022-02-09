@@ -81,6 +81,11 @@ impl Interpreter {
                     self.resolve_expr(expr);
                 }
 
+                Statement::Declaration(_sid, _idx, rhs) => {
+                    let rhs = self.resolve_expr(rhs);
+                    self.vartable.push(rhs);
+                }
+
                 Statement::Block(block) => {
                     self.run_block(block);
                 }
@@ -187,10 +192,6 @@ impl Interpreter {
         let rhs = self.resolve_expr(rhs);
 
         match (&bo, &lhs) {
-            (BinOpType::Declare, Expression::Var(_name, _idx)) => {
-                self.vartable.push(rhs.clone());
-                return rhs;
-            }
             (BinOpType::Assign, Expression::Var(name, idx)) => {
                 match self.get_var_mut(*idx) {
                     Some(val) => *val = rhs.clone(),
@@ -242,7 +243,7 @@ impl Interpreter {
                 BinOpType::Greater => Value::I64(if lhs > rhs { 1 } else { 0 }),
                 BinOpType::GreaterEqu => Value::I64(if lhs >= rhs { 1 } else { 0 }),
 
-                BinOpType::Declare | BinOpType::Assign => unreachable!(),
+                BinOpType::Assign => unreachable!(),
             },
             _ => panic!("Value types are not compatible"),
         }

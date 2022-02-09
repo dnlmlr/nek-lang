@@ -162,7 +162,6 @@ impl Token {
             T![>] => BinOpType::Greater,
             T![>=] => BinOpType::GreaterEqu,
 
-            T![<-] => BinOpType::Declare,
             T![=] => BinOpType::Assign,
 
             _ => return None,

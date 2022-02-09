@@ -40,6 +40,7 @@ impl SimpleAstOptimizer {
                     Self::optimize_block(body_false);
                 }
                 Statement::Print(expr) => Self::optimize_expr(expr),
+                Statement::Declaration(_, _, expr) => Self::optimize_expr(expr),
             }
         }
     }
@@ -74,7 +75,7 @@ impl SimpleAstOptimizer {
                             BinOpType::Greater => Expression::I64(if lhs > rhs { 1 } else { 0 }),
                             BinOpType::GreaterEqu => Expression::I64(if lhs >= rhs { 1 } else { 0 }),
             
-                            BinOpType::Declare | BinOpType::Assign => unreachable!(),
+                            BinOpType::Assign => unreachable!(),
                         };
                         *expr = new_expr;
                     },
