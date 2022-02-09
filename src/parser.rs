@@ -15,20 +15,20 @@ pub fn parse<T: Iterator<Item = Token>, A: IntoIterator<IntoIter = T>>(tokens: A
 
 struct Parser<T: Iterator<Item = Token>> {
     tokens: Peekable<T>,
-    stringstore: StringStore,
-    varstack: Vec<Sid>,
+    string_store: StringStore,
+    var_stack: Vec<Sid>,
 }
 
 impl<T: Iterator<Item = Token>> Parser<T> {
     /// Create a new parser to parse the given Token Stream
     pub fn new<A: IntoIterator<IntoIter = T>>(tokens: A) -> Self {
         let tokens = tokens.into_iter().peekable();
-        let stringstore = StringStore::new();
-        let varstack = Vec::new();
+        let string_store = StringStore::new();
+        let var_stack = Vec::new();
         Self {
             tokens,
-            stringstore,
-            varstack,
+            string_store,
+            var_stack,
         }
     }
 
@@ -36,14 +36,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let main = self.parse_scoped_block();
         Ast {
             main,
-            stringstore: self.stringstore,
+            stringstore: self.string_store,
         }
     }
 
     /// Parse tokens into an abstract syntax tree. This will continuously parse statements until
     /// encountering end-of-file or a block end '}' .
     fn parse_scoped_block(&mut self) -> BlockScope {
-        let framepointer = self.varstack.len();
+        let framepointer = self.var_stack.len();
         let mut prog = Vec::new();
 
         loop {
@@ -56,7 +56,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 T!['{'] => {
                     self.next();
                     prog.push(Statement::Block(self.parse_scoped_block()));
-                    if !matches!(self.next(), T!['}']) {
+                    if self.next() != T!['}'] {
                         panic!("Error parsing block: Expectected closing braces '}}'");
                     }
                 }
@@ -66,7 +66,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             }
         }
 
-        self.varstack.truncate(framepointer);
+        self.var_stack.truncate(framepointer);
 
         prog
     }
@@ -82,7 +82,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 let expr = self.parse_expr();
 
                 // After a statement, there must be a semicolon
-                if !matches!(self.next(), T![;]) {
+                if self.next() != T![;] {
                     panic!("Expected semicolon after statement");
                 }
 
@@ -98,8 +98,8 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 match &mut expr {
                     Expression::BinOp(BinOpType::Declare, lhs, _) => match lhs.as_mut() {
                         Expression::Var(sid, sp) => {
-                            *sp = self.varstack.len();
-                            self.varstack.push(*sid);
+                            *sp = self.var_stack.len();
+                            self.var_stack.push(*sid);
                         }
                         _ => panic!("Left hand side of declaration must be variable"),
                     },
@@ -109,7 +109,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 let stmt = Statement::Expr(expr);
 
                 // After a statement, there must be a semicolon
-                if !matches!(self.next(), T![;]) {
+                if self.next() != T![;] {
                     panic!("Expected semicolon after statement");
                 }
 
@@ -120,34 +120,34 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
     /// Parse an if statement from the tokens
     fn parse_if(&mut self) -> If {
-        if !matches!(self.next(), T![if]) {
+        if self.next() != T![if] {
             panic!("Error lexing if: Expected if token");
         }
 
         let condition = self.parse_expr();
 
-        if !matches!(self.next(), T!['{']) {
+        if self.next() != T!['{'] {
             panic!("Error lexing if: Expected '{{'")
         }
 
         let body_true = self.parse_scoped_block();
 
-        if !matches!(self.next(), T!['}']) {
+        if self.next() != T!['}'] {
             panic!("Error lexing if: Expected '}}'")
         }
 
         let mut body_false = BlockScope::default();
 
-        if matches!(self.peek(), T![else]) {
+        if self.peek() == &T![else] {
             self.next();
 
-            if !matches!(self.next(), T!['{']) {
+            if self.next() != T!['{'] {
                 panic!("Error lexing if: Expected '{{'")
             }
 
             body_false = self.parse_scoped_block();
 
-            if !matches!(self.next(), T!['}']) {
+            if self.next() != T!['}'] {
                 panic!("Error lexing if: Expected '}}'")
             }
         }
@@ -161,7 +161,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
     /// Parse a loop statement from the tokens
     fn parse_loop(&mut self) -> Loop {
-        if !matches!(self.next(), T![loop]) {
+        if self.next() != T![loop] {
             panic!("Error lexing loop: Expected loop token");
         }
 
@@ -178,7 +178,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             T![;] => {
                 advancement = Some(self.parse_expr());
 
-                if !matches!(self.next(), T!['{']) {
+                if self.next() != T!['{'] {
                     panic!("Error lexing loop: Expected '{{'")
                 }
 
@@ -188,7 +188,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             _ => panic!("Error lexing loop: Expected ';' or '{{'"),
         }
 
-        if !matches!(self.next(), T!['}']) {
+        if self.next() != T!['}'] {
             panic!("Error lexing loop: Expected '}}'")
         }
 
@@ -240,33 +240,30 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             T![i64(val)] => Expression::I64(val),
 
             // Literal String
-            T![str(text)] => Expression::String(self.stringstore.intern_or_lookup(&text)),
+            T![str(text)] => Expression::String(self.string_store.intern_or_lookup(&text)),
 
+            // Array literal. Square brackets containing the array size as expression
             T!['['] => {
                 let size = self.parse_expr();
 
-                if !matches!(self.next(), T![']']) {
+                if self.next() != T![']'] {
                     panic!("Error parsing array literal: Expected closing bracket")
                 }
 
                 Expression::ArrayLiteral(size.into())
             }
 
-            T![ident(name)] if matches!(self.peek(), T!['[']) => {
-                let sid = self.stringstore.intern_or_lookup(&name);
-                let stackpos = self
-                    .varstack
-                    .iter()
-                    .rev()
-                    .position(|it| *it == sid)
-                    .map(|it| self.varstack.len() - it - 1)
-                    .unwrap_or(usize::MAX);
+            // Array sccess, aka indexing. An ident followed by square brackets containing the
+            // index as an expression
+            T![ident(name)] if self.peek() == &T!['['] => {
+                let sid = self.string_store.intern_or_lookup(&name);
+                let stackpos = self.get_stackpos(sid);
 
                 self.next();
 
                 let index = self.parse_expr();
 
-                if !matches!(self.next(), T![']']) {
+                if self.next() != T![']'] {
                     panic!("Error parsing array access: Expected closing bracket")
                 }
 
@@ -274,14 +271,8 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             }
 
             T![ident(name)] => {
-                let sid = self.stringstore.intern_or_lookup(&name);
-                let stackpos = self
-                    .varstack
-                    .iter()
-                    .rev()
-                    .position(|it| *it == sid)
-                    .map(|it| self.varstack.len() - it - 1)
-                    .unwrap_or(usize::MAX);
+                let sid = self.string_store.intern_or_lookup(&name);
+                let stackpos = self.get_stackpos(sid);
                 Expression::Var(sid, stackpos)
             }
 
@@ -290,7 +281,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 let inner_expr = self.parse_expr();
 
                 // Verify that there is a closing parenthesis
-                if !matches!(self.next(), T![')']) {
+                if self.next() != T![')'] {
                     panic!("Error parsing primary expr: Exepected closing parenthesis ')'");
                 }
 
@@ -317,6 +308,15 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
             tok => panic!("Error parsing primary expr: Unexpected Token '{:?}'", tok),
         }
+    }
+
+    fn get_stackpos(&self, varid: Sid) -> usize {
+        self.var_stack
+            .iter()
+            .rev()
+            .position(|it| *it == varid)
+            .map(|it| self.var_stack.len() - it - 1)
+            .unwrap_or(usize::MAX)
     }
 
     /// Get the next Token without removing it
