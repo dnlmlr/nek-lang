@@ -41,7 +41,7 @@ pub enum RuntimeError {
 pub enum Value {
     I64(i64),
     String(Sid),
-    Array(RefCell<Vec<Value>>),
+    Array(Rc<RefCell<Vec<Value>>>),
     Void,
 }
 
@@ -245,7 +245,7 @@ impl Interpreter {
                     Value::I64(size) if !size.is_negative() => size,
                     val => return Err(RuntimeError::InvalidArrayIndex(val)),
                 };
-                Value::Array(RefCell::new(vec![Value::I64(0); size as usize]))
+                Value::Array(Rc::new(RefCell::new(vec![Value::I64(0); size as usize])))
             }
             Expression::String(text) => Value::String(text.clone()),
             Expression::BinOp(bo, lhs, rhs) => self.resolve_binop(bo, lhs, rhs)?,
