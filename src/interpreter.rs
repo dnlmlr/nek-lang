@@ -155,8 +155,8 @@ impl Interpreter {
                     self.resolve_expr(expr)?;
                 }
 
-                Statement::Declaration(_sid, _idx, rhs) => {
-                    let rhs = self.resolve_expr(rhs)?;
+                Statement::Declaration(decl) => {
+                    let rhs = self.resolve_expr(&decl.rhs)?;
                     self.vartable.push(rhs);
                 }
 
@@ -172,8 +172,10 @@ impl Interpreter {
                 Statement::Loop(looop) => {
                     // loop runs as long condition != 0
                     loop {
-                        if matches!(self.resolve_expr(&looop.condition)?, Value::I64(0)) {
-                            break;
+                        if let Some(condition) = &looop.condition {
+                            if matches!(self.resolve_expr(condition)?, Value::I64(0)) {
+                                break;
+                            }
                         }
 
                         let be = self.run_block(&looop.body)?;

@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 use crate::{
-    ast::{Ast, BlockScope, Expression, FunDecl, If, Loop, Statement},
+    ast::{Ast, BlockScope, Expression, FunDecl, If, Loop, Statement, VarDecl},
     stringstore::{Sid, StringStore},
     token::Token,
     util::{PutBackIter, PutBackableExt},
@@ -139,7 +139,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             T![return] => {
                 self.next();
                 let stmt = Statement::Return(self.parse_expr()?);
-                
+
                 // After a statement, there must be a semicolon
                 validate_next!(self, T![;], ";");
 
@@ -223,7 +223,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                         let sp = self.var_stack.len();
                         self.var_stack.push(sid);
 
-                        Statement::Declaration(sid, sp, rhs)
+                        Statement::Declaration(VarDecl {
+                            name: sid,
+                            var_stackpos: sp,
+                            rhs,
+                        })
                     }
                     (first, _) => {
                         self.putback(first);
@@ -275,26 +279,21 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     fn parse_loop(&mut self) -> ResPE<Loop> {
         validate_next!(self, T![loop], "loop");
 
-        let condition = self.parse_expr()?;
+        let mut condition = None;
         let mut advancement = None;
 
-        let body;
+        if !matches!(self.peek(), T!['{']) {
+            condition = Some(self.parse_expr()?);
 
-        match self.next() {
-            T!['{'] => {
-                body = self.parse_scoped_block()?;
-            }
-
-            T![;] => {
+            if matches!(self.peek(), T![;]) {
+                self.next();
                 advancement = Some(self.parse_expr()?);
-
-                validate_next!(self, T!['{'], "{");
-
-                body = self.parse_scoped_block()?;
             }
-
-            tok => return Err(ParseErr::UnexpectedToken(tok, ";\" or \"{".to_string())),
         }
+
+        validate_next!(self, T!['{'], "{");
+
+        let body = self.parse_scoped_block()?;
 
         validate_next!(self, T!['}'], "}");
 

@@ -1,4 +1,4 @@
-use crate::ast::{Ast, BlockScope, Expression, If, Loop, Statement, BinOpType, UnOpType};
+use crate::ast::{Ast, BlockScope, Expression, If, Loop, Statement, BinOpType, UnOpType, VarDecl};
 
 pub trait AstOptimizer {
     fn optimize(ast: Ast) -> Ast;
@@ -24,7 +24,9 @@ impl SimpleAstOptimizer {
                     advancement,
                     body,
                 }) => {
-                    Self::optimize_expr(condition);
+                    if let Some(condition) = condition {
+                        Self::optimize_expr(condition);
+                    }
                     if let Some(advancement) = advancement {
                         Self::optimize_expr(advancement)
                     }
@@ -40,7 +42,7 @@ impl SimpleAstOptimizer {
                     Self::optimize_block(body_false);
                 }
                 Statement::Print(expr) => Self::optimize_expr(expr),
-                Statement::Declaration(_, _, expr) => Self::optimize_expr(expr),
+                Statement::Declaration(VarDecl { name: _, var_stackpos: _, rhs}) => Self::optimize_expr(rhs),
                 Statement::FunDeclare(_) => (),
                 Statement::Return(expr) => Self::optimize_expr(expr),
                 Statement::Break | Statement::Continue => (),

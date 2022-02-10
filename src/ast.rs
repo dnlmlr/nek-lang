@@ -101,7 +101,7 @@ pub enum Expression {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Loop {
     /// The condition that determines if the loop should continue
-    pub condition: Expression,
+    pub condition: Option<Expression>,
     /// This is executed after each loop to advance the condition variables
     pub advancement: Option<Expression>,
     /// The loop body that is executed each loop
@@ -127,11 +127,18 @@ pub struct FunDecl {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
+pub struct VarDecl {
+    pub name: Sid,
+    pub var_stackpos: usize,
+    pub rhs: Expression,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Statement {
     Return(Expression),
     Break,
     Continue,
-    Declaration(Sid, usize, Expression),
+    Declaration(VarDecl),
     FunDeclare(FunDecl),
     Expr(Expression),
     Block(BlockScope),
