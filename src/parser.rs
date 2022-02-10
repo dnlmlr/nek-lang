@@ -107,6 +107,22 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     /// Parse a single statement from the tokens.
     fn parse_stmt(&mut self) -> ResPE<Statement> {
         let stmt = match self.peek() {
+            T![break] => {
+                self.next();
+
+                validate_next!(self, T![;], ";");
+
+                Statement::Break
+            }
+
+            T![continue] => {
+                self.next();
+
+                validate_next!(self, T![;], ";");
+
+                Statement::Continue
+            }
+
             T![loop] => Statement::Loop(self.parse_loop()?),
 
             T![print] => {

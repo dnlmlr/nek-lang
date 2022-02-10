@@ -48,6 +48,8 @@ pub enum Value {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum BlockExit {
     Normal,
+    Break,
+    Continue,
     Return(Value),
 }
 
@@ -139,6 +141,9 @@ impl Interpreter {
 
         for stmt in prog {
             match stmt {
+                Statement::Break => return Ok(BlockExit::Break),
+                Statement::Continue => return Ok(BlockExit::Continue),
+
                 Statement::Return(expr) => {
                     let val = self.resolve_expr(expr)?;
 
@@ -156,9 +161,10 @@ impl Interpreter {
                 }
 
                 Statement::Block(block) => match self.run_block(block)? {
-                    BlockExit::Return(val) => {
+                    // Propagate return, continue and break
+                    be @ (BlockExit::Return(_) | BlockExit::Continue | BlockExit::Break) => {
                         self.vartable.truncate(framepointer);
-                        return Ok(BlockExit::Return(val));
+                        return Ok(be);
                     }
                     _ => (),
                 },
@@ -170,7 +176,16 @@ impl Interpreter {
                             break;
                         }
 
-                        self.run_block(&looop.body)?;
+                        let be = self.run_block(&looop.body)?;
+                        match be {
+                            // Propagate return
+                            be @ BlockExit::Return(_) => {
+                                self.vartable.truncate(framepointer);
+                                return Ok(be);
+                            }
+                            BlockExit::Break => break,
+                            BlockExit::Continue | BlockExit::Normal => (),
+                        }
 
                         if let Some(adv) = &looop.advancement {
                             self.resolve_expr(&adv)?;
@@ -198,10 +213,12 @@ impl Interpreter {
                     } else {
                         self.run_block(body_true)?
                     };
+
                     match exit {
-                        BlockExit::Return(val) => {
+                        // Propagate return, continue and break
+                        be @ (BlockExit::Return(_) | BlockExit::Continue | BlockExit::Break) => {
                             self.vartable.truncate(framepointer);
-                            return Ok(BlockExit::Return(val));
+                            return Ok(be);
                         }
                         _ => (),
                     }
@@ -269,7 +286,7 @@ impl Interpreter {
                     &Rc::clone(&self.funtable.get(*fun_stackpos).unwrap().body),
                     expected_num_args,
                 )? {
-                    BlockExit::Normal => Value::Void,
+                    BlockExit::Normal | BlockExit::Continue | BlockExit::Break => Value::Void,
                     BlockExit::Return(val) => val,
                 }
             }

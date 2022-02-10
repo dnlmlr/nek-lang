@@ -43,6 +43,7 @@ impl SimpleAstOptimizer {
                 Statement::Declaration(_, _, expr) => Self::optimize_expr(expr),
                 Statement::FunDeclare(_) => (),
                 Statement::Return(expr) => Self::optimize_expr(expr),
+                Statement::Break | Statement::Continue => (),
             }
         }
     }

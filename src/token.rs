@@ -18,6 +18,10 @@ pub enum Keyword {
     Fun,
     /// Return keyword ("return")
     Return,
+    /// Break keyword ("break")
+    Break,
+    /// Continue keyword ("continue")
+    Continue,
 }
 
 /// Literal values
@@ -215,6 +219,14 @@ macro_rules! T {
 
     [return] => {
         crate::token::Token::Keyword(crate::token::Keyword::Return)
+    };
+
+    [break] => {
+        crate::token::Token::Keyword(crate::token::Keyword::Break)
+    };
+
+    [continue] => {
+        crate::token::Token::Keyword(crate::token::Keyword::Continue)
     };
 
     // Literals

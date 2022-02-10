@@ -129,6 +129,8 @@ pub struct FunDecl {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Statement {
     Return(Expression),
+    Break,
+    Continue,
     Declaration(Sid, usize, Expression),
     FunDeclare(FunDecl),
     Expr(Expression),

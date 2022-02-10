@@ -202,6 +202,8 @@ impl<'a> Lexer<'a> {
             "else" => T![else],
             "fun" => T![fun],
             "return" => T![return],
+            "break" => T![break],
+            "continue" => T![continue],
 
             // If it doesn't match a keyword, it is a normal identifier
             _ => T![ident(ident)],
