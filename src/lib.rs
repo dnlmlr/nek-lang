@@ -12,125 +12,50 @@ mod tests {
     use crate::interpreter::{Interpreter, Value};
     use std::fs::read_to_string;
 
-    #[test]
-    fn test_euler1() {
-        let filename = "euler1.nek";
-        let correct_result = 233168;
-
+    fn run_example_check_single_i64_output(filename: &str, correct_result: i64) {
         let mut interpreter = Interpreter::new();
         interpreter.capture_output = true;
 
         let code = read_to_string(format!("examples/{filename}")).unwrap();
-
         interpreter.run_str(&code);
 
         let expected_output = [Value::I64(correct_result)];
-
         assert_eq!(interpreter.output(), &expected_output);
+    }
+
+    #[test]
+    fn test_euler1() {
+        run_example_check_single_i64_output("euler1.nek", 233168);
     }
 
     #[test]
     fn test_euler2() {
-        let filename = "euler2.nek";
-        let correct_result = 4613732;
-
-        let mut interpreter = Interpreter::new();
-        interpreter.capture_output = true;
-
-        let code = read_to_string(format!("examples/{filename}")).unwrap();
-
-        interpreter.run_str(&code);
-
-        let expected_output = [Value::I64(correct_result)];
-
-        assert_eq!(interpreter.output(), &expected_output);
+        run_example_check_single_i64_output("euler2.nek", 4613732);
     }
 
     #[test]
     fn test_euler3() {
-        let filename = "euler3.nek";
-        let correct_result = 6857;
-
-        let mut interpreter = Interpreter::new();
-        interpreter.capture_output = true;
-
-        let code = read_to_string(format!("examples/{filename}")).unwrap();
-
-        interpreter.run_str(&code);
-
-        let expected_output = [Value::I64(correct_result)];
-
-        assert_eq!(interpreter.output(), &expected_output);
+        run_example_check_single_i64_output("euler3.nek", 6857);
     }
 
     #[test]
     fn test_euler4() {
-        let filename = "euler4.nek";
-        let correct_result = 906609;
-
-        let mut interpreter = Interpreter::new();
-        interpreter.capture_output = true;
-
-        let code = read_to_string(format!("examples/{filename}")).unwrap();
-
-        interpreter.run_str(&code);
-
-        let expected_output = [Value::I64(correct_result)];
-
-        assert_eq!(interpreter.output(), &expected_output);
+        run_example_check_single_i64_output("euler4.nek", 906609);
     }
 
     #[test]
     fn test_euler5() {
-        let filename = "euler5.nek";
-        let correct_result = 232792560;
-
-        let mut interpreter = Interpreter::new();
-        interpreter.capture_output = true;
-
-        let code = read_to_string(format!("examples/{filename}")).unwrap();
-
-        interpreter.run_str(&code);
-
-        let expected_output = [Value::I64(correct_result)];
-
-        assert_eq!(interpreter.output(), &expected_output);
+        run_example_check_single_i64_output("euler5.nek", 232792560);
     }
 
     #[test]
     fn test_recursive_fib() {
-        
-        let filename = "recursive_fib.nek";
-        let correct_result = 832040;
-
-        let mut interpreter = Interpreter::new();
-        interpreter.capture_output = true;
-
-        let code = read_to_string(format!("examples/{filename}")).unwrap();
-
-        interpreter.run_str(&code);
-
-        let expected_output = [Value::I64(correct_result)];
-
-        assert_eq!(interpreter.output(), &expected_output);
+        run_example_check_single_i64_output("recursive_fib.nek", 832040);
     }
 
     #[test]
     fn test_functions() {
-        
-        let filename = "test_functions.nek";
-        let correct_result = 69;
-
-        let mut interpreter = Interpreter::new();
-        interpreter.capture_output = true;
-
-        let code = read_to_string(format!("examples/{filename}")).unwrap();
-
-        interpreter.run_str(&code);
-
-        let expected_output = [Value::I64(correct_result)];
-
-        assert_eq!(interpreter.output(), &expected_output);
+        run_example_check_single_i64_output("test_functions.nek", 69);
     }
 }
 
