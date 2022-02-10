@@ -114,5 +114,23 @@ mod tests {
 
         assert_eq!(interpreter.output(), &expected_output);
     }
+
+    #[test]
+    fn test_functions() {
+        
+        let filename = "test_functions.nek";
+        let correct_result = 69;
+
+        let mut interpreter = Interpreter::new();
+        interpreter.capture_output = true;
+
+        let code = read_to_string(format!("examples/{filename}")).unwrap();
+
+        interpreter.run_str(&code);
+
+        let expected_output = [Value::I64(correct_result)];
+
+        assert_eq!(interpreter.output(), &expected_output);
+    }
 }
 

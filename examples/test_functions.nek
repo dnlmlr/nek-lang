@@ -1,0 +1,31 @@
+fun square(a) {
+    return a * a;
+}
+
+fun add(a, b) {
+    return a + b;
+}
+
+fun mul(a, b) {
+    return a * b;
+}
+
+// Funtion with multiple args & nested calls to different functions
+fun addmul(a, b, c) {
+    return mul(add(a, b), c);
+}
+
+a <- 10;
+b <- 20;
+c <- 3;
+
+result <- addmul(a, b, c) + square(c);
+
+// Access and modify outer variable. Argument `a` must not be used from outer var
+fun sub_from_result(a) {
+    result = result - a;
+}
+
+sub_from_result(30);
+
+print result;
