@@ -221,22 +221,26 @@ impl Interpreter {
             }
 
             Expression::FunCall(fun_name, fun_stackpos, args) => {
+                let args_len = args.len();
+
+                // All of the arg expressions must be resolved before pushing the vars on the stack,
+                // otherwise the stack positions are incorrect while resolving
+                let args = args.iter().map(|arg| self.resolve_expr(arg)).collect::<Vec<_>>();
                 for arg in args {
-                    let arg = self.resolve_expr(arg)?;
-                    self.vartable.push(arg);
+                    self.vartable.push(arg?);
                 }
 
                 // Function existance has been verified in the parser, so unwrap here shouldn't fail
-                let num_args = self.funtable.get(*fun_stackpos).unwrap().argnames.len();
+                let expected_num_args = self.funtable.get(*fun_stackpos).unwrap().argnames.len();
 
-                if num_args != args.len() {
+                if expected_num_args != args_len {
                     let fun_name = self.stringstore.lookup(*fun_name).cloned().unwrap_or("<unknown>".to_string());
-                    return Err(RuntimeError::InvalidNumberOfArgs(fun_name, num_args, args.len()));
+                    return Err(RuntimeError::InvalidNumberOfArgs(fun_name, expected_num_args, args_len));
                 }
 
                 match self.run_block_fp_offset(
                     &Rc::clone(&self.funtable.get(*fun_stackpos).unwrap().body),
-                    num_args,
+                    expected_num_args,
                 )? {
                     BlockExit::Normal => Value::Void,
                     BlockExit::Return(val) => val,
