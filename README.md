@@ -1,4 +1,38 @@
 # NEK-Lang
+## Table of contents
+- [NEK-Lang](#nek-lang)
+  - [Table of contents](#table-of-contents)
+  - [Variables](#variables)
+    - [Declaration](#declaration)
+    - [Assignment](#assignment)
+  - [Datatypes](#datatypes)
+    - [I64](#i64)
+    - [String](#string)
+    - [Array](#array)
+  - [Expressions](#expressions)
+    - [General](#general)
+    - [Mathematical Operators](#mathematical-operators)
+    - [Bitwise Operators](#bitwise-operators)
+    - [Logical Operators](#logical-operators)
+    - [Equality & Relational Operators](#equality--relational-operators)
+  - [Control-Flow](#control-flow)
+    - [Loop](#loop)
+    - [If / Else](#if--else)
+    - [Block Scopes](#block-scopes)
+  - [Functions](#functions)
+    - [Function definition](#function-definition)
+    - [Function calls](#function-calls)
+  - [IO](#io)
+    - [Print](#print)
+  - [Comments](#comments)
+    - [Line comments](#line-comments)
+- [Feature Tracker](#feature-tracker)
+  - [High level Components](#high-level-components)
+  - [Language features](#language-features)
+- [Parsing Grammar](#parsing-grammar)
+  - [Expressions](#expressions-1)
+  - [Statements](#statements)
+- [Examples](#examples)
 
 ## Variables
 The variables are all contained in scopes. Variables defined in an outer scope can be accessed in 
@@ -252,7 +286,8 @@ Printing is implemented via the `print` keyword
 - Print currently automatically adds a linebreak
 ```
 a <- 1;
-print a; // Outputs `"1\n"` to the terminal
+// Outputs `"1"` to the terminal
+print a;
 ```
 
 ## Comments
@@ -334,9 +369,9 @@ Line comments can be initiated by using `//`
   - [x] Local variables
   - [x] Pass arrays by-reference, i64 by-vale, string is a const ref
 
-## Grammar
+# Parsing Grammar
 
-### Expressions
+## Expressions
 ```
 ARRAY_LITERAL = "[" expr "]"
 ARRAY_ACCESS = IDENT "[" expr "]"
@@ -357,7 +392,7 @@ expr_lor = expr_land ("||" expr_land)*
 expr = expr_lor
 ```
 
-### Statements
+## Statements
 ```
 stmt_return = "return" expr ";"
 stmt_break = "break" ";"
@@ -371,4 +406,12 @@ stmt_if = "if" expr "{" stmt* "}" ("else" "{" stmt* "}")?
 stmt_print = "print" expr ";"
 stmt = stmt_return | stmt_break | stmt_continue | stmt_var_decl | stmt_fun_decl 
      | stmt_expr | stmt_block | stmt_loop | stmt_if | stmt_print
+```
+
+# Examples
+There are a bunch of examples in the [examples](examples/) directory. Those include (non-optimal) solutions to the first five project euler problems, as well as a [simple Game of Life implementation](examples/game_of_life.nek).
+
+To run an example via `cargo-run`, use:
+```
+cargo run --release -- examples/[NAME]
 ```
