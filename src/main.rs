@@ -1,18 +1,12 @@
-use std::{
-    env::args,
-    fs,
-    // io::{stdin, stdout, Write},
-    process::exit,
-};
+use std::{env::args, fs, process::exit};
 
-use nek_lang::interpreter::Interpreter;
+use nek_lang::{interpreter::Interpreter, nice_panic};
 
 #[derive(Debug, Default)]
 struct CliConfig {
     print_tokens: bool,
     print_ast: bool,
     no_optimizations: bool,
-    // interactive: bool,
     file: Option<String>,
 }
 
@@ -25,10 +19,11 @@ fn main() {
             "--token" | "-t" => conf.print_tokens = true,
             "--ast" | "-a" => conf.print_ast = true,
             "--no-opt" | "-n" => conf.no_optimizations = true,
-            // "--interactive" | "-i" => conf.interactive = true,
             "--help" | "-h" => print_help(),
-            file if conf.file.is_none() => conf.file = Some(file.to_string()),
-            _ => panic!("Invalid argument: '{}'", arg),
+            file if !arg.starts_with("-") && conf.file.is_none() => {
+                conf.file = Some(file.to_string())
+            }
+            _ => nice_panic!("Error: Invalid argument '{}'", arg),
         }
     }
 
@@ -39,32 +34,15 @@ fn main() {
     interpreter.optimize_ast = !conf.no_optimizations;
 
     if let Some(file) = &conf.file {
-        let code = fs::read_to_string(file).expect(&format!("File not found: '{}'", file));
+        let code = match fs::read_to_string(file) {
+            Ok(code) => code,
+            Err(_) => nice_panic!("Error: Could not read file '{}'", file),
+        };
         interpreter.run_str(&code);
+    } else {
+        println!("Error: No file given\n");
+        print_help();
     }
-
-    // TODO: The interactive prompt is currently broken due to the precalculated stack positions.
-    // For this to still work, there needs to be a way to keep the stack in the interpreter after
-    // runing once. Also somehow the stringstore and var stack from the last parsing stages would
-    // need to be reused for the parser to work correctly
-
-    // if conf.interactive || conf.file.is_none() {
-    //     let mut code = String::new();
-
-    //     loop {
-    //         print!(">> ");
-    //         stdout().flush().unwrap();
-
-    //         code.clear();
-    //         stdin().read_line(&mut code).unwrap();
-
-    //         if code.trim() == "exit" {
-    //             break;
-    //         }
-
-    //         interpreter.run_str(&code);
-    //     }
-    // }
 }
 
 fn print_help() {
@@ -73,7 +51,6 @@ fn print_help() {
     println!("-t, --token        Print the lexed tokens");
     println!("-a, --ast          Print the abstract syntax tree");
     println!("-n, --no-opt       Disable the AST optimizations");
-    // println!("-i, --interactive  Interactive mode");
     println!("-h, --help         Show this help screen");
     exit(0);
 }

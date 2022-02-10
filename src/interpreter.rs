@@ -5,6 +5,7 @@ use crate::{
     ast::{Ast, BinOpType, BlockScope, Expression, FunDecl, If, Statement, UnOpType},
     astoptimizer::{AstOptimizer, SimpleAstOptimizer},
     lexer::lex,
+    nice_panic,
     parser::parse,
     stringstore::{Sid, StringStore},
 };
@@ -13,18 +14,25 @@ use crate::{
 pub enum RuntimeError {
     #[error("Invalid error Index: {}", 0.to_string())]
     InvalidArrayIndex(Value),
+
     #[error("Variable used but not declared: {0}")]
     VarUsedNotDeclared(String),
+
     #[error("Can't index into non-array variable: {0}")]
     TryingToIndexNonArray(String),
+
     #[error("Invalid value type for unary operation: {}", 0.to_string())]
     UnOpInvalidType(Value),
+
     #[error("Incompatible binary operations. Operands don't match: {} {}", 0.to_string(), 1.to_string())]
     BinOpIncompatibleTypes(Value, Value),
+
     #[error("Array access out of bounds: Accessed {0}, size is {1}")]
     ArrayOutOfBounds(usize, usize),
+
     #[error("Division by zero")]
     DivideByZero,
+
     #[error("Invalid number of arguments for function {0}. Expected {1}, got {2}")]
     InvalidNumberOfArgs(String, usize, usize),
 }
@@ -83,14 +91,24 @@ impl Interpreter {
     }
 
     pub fn run_str(&mut self, code: &str) {
-        let tokens = lex(code).unwrap();
+        let tokens = match lex(code) {
+            Ok(tokens) => tokens,
+            Err(e) => nice_panic!("Lexing error: {}", e),
+        };
+
         if self.print_tokens {
             println!("Tokens: {:?}", tokens);
         }
 
-        let ast = parse(tokens).unwrap();
+        let ast = match parse(tokens) {
+            Ok(ast) => ast,
+            Err(e) => nice_panic!("Parsing error: {}", e),
+        };
 
-        self.run_ast(ast).unwrap();
+        match self.run_ast(ast) {
+            Ok(_) => (),
+            Err(e) => nice_panic!("Runtime error: {}", e),
+        }
     }
 
     pub fn run_ast(&mut self, mut ast: Ast) -> Result<(), RuntimeError> {
@@ -137,15 +155,13 @@ impl Interpreter {
                     self.vartable.push(rhs);
                 }
 
-                Statement::Block(block) => {
-                    match self.run_block(block)? {
-                        BlockExit::Return(val) => {
-                            self.vartable.truncate(framepointer);
-                            return Ok(BlockExit::Return(val));
-                        }
-                        _ => ()
+                Statement::Block(block) => match self.run_block(block)? {
+                    BlockExit::Return(val) => {
+                        self.vartable.truncate(framepointer);
+                        return Ok(BlockExit::Return(val));
                     }
-                }
+                    _ => (),
+                },
 
                 Statement::Loop(looop) => {
                     // loop runs as long condition != 0
@@ -225,7 +241,10 @@ impl Interpreter {
 
                 // All of the arg expressions must be resolved before pushing the vars on the stack,
                 // otherwise the stack positions are incorrect while resolving
-                let args = args.iter().map(|arg| self.resolve_expr(arg)).collect::<Vec<_>>();
+                let args = args
+                    .iter()
+                    .map(|arg| self.resolve_expr(arg))
+                    .collect::<Vec<_>>();
                 for arg in args {
                     self.vartable.push(arg?);
                 }
@@ -234,8 +253,16 @@ impl Interpreter {
                 let expected_num_args = self.funtable.get(*fun_stackpos).unwrap().argnames.len();
 
                 if expected_num_args != args_len {
-                    let fun_name = self.stringstore.lookup(*fun_name).cloned().unwrap_or("<unknown>".to_string());
-                    return Err(RuntimeError::InvalidNumberOfArgs(fun_name, expected_num_args, args_len));
+                    let fun_name = self
+                        .stringstore
+                        .lookup(*fun_name)
+                        .cloned()
+                        .unwrap_or("<unknown>".to_string());
+                    return Err(RuntimeError::InvalidNumberOfArgs(
+                        fun_name,
+                        expected_num_args,
+                        args_len,
+                    ));
                 }
 
                 match self.run_block_fp_offset(
@@ -414,7 +441,12 @@ impl Interpreter {
         match val {
             Value::I64(val) => format!("{}", val),
             Value::Array(val) => format!("{:?}", val.borrow()),
-            Value::String(text) => format!("{}", self.stringstore.lookup(*text).unwrap_or(&"<invalid string>".to_string())),
+            Value::String(text) => format!(
+                "{}",
+                self.stringstore
+                    .lookup(*text)
+                    .unwrap_or(&"<invalid string>".to_string())
+            ),
             Value::Void => format!("void"),
         }
     }

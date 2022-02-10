@@ -1,3 +1,23 @@
+/// Exit the program with error code 1 and format-print the given text on stderr. This pretty much
+/// works like panic, but doesn't show the additional information that panic adds. Those can be 
+/// interesting for debugging, but don't look that great when building a release executable for an
+/// end user.
+#[macro_export]
+macro_rules! nice_panic {
+    ($fmt:expr) => {
+        {
+            eprintln!($fmt);
+            std::process::exit(1);
+        }
+    };
+    ($fmt:expr, $($arg:tt)*) => {
+        {
+            eprintln!($fmt, $($arg)*);
+            std::process::exit(1);
+        }
+    };
+}
+
 /// The PutBackIter allows for items to be put back back and to be peeked. Putting an item back
 /// will cause it to be the next item returned by `next`. Peeking an item will get a reference to
 /// the next item in the iterator without removing it.
@@ -14,7 +34,7 @@ impl<T> PutBackIter<T>
 where
     T: Iterator,
 {
-    /// Make the given iterator putbackable, wrapping it in the PutBackIter type. This effectively 
+    /// Make the given iterator putbackable, wrapping it in the PutBackIter type. This effectively
     /// adds the `peek` and `putback` functions.
     pub fn new(iter: T) -> Self {
         Self {
@@ -31,7 +51,7 @@ where
         self.putback_stack.push(it);
     }
 
-    /// Peek the next item, getting a reference to it without removing it from the iterator. This 
+    /// Peek the next item, getting a reference to it without removing it from the iterator. This
     /// also includes items that were previsouly put back and not yet removed.
     pub fn peek(&mut self) -> Option<&T::Item> {
         if self.putback_stack.is_empty() {
@@ -58,7 +78,7 @@ where
 }
 
 pub trait PutBackableExt {
-    /// Make the iterator putbackable, wrapping it in the PutBackIter type. This effectively 
+    /// Make the iterator putbackable, wrapping it in the PutBackIter type. This effectively
     /// adds the `peek` and `putback` functions.
     fn putbackable(self) -> PutBackIter<Self>
     where
@@ -117,7 +137,7 @@ mod tests {
         let it4 = pb_iter.next();
         assert_eq!(it4, iter.next());
 
-        // Put one value back and check if `next` works as expected, returning the just put back 
+        // Put one value back and check if `next` works as expected, returning the just put back
         // item
         pb_iter.putback(it0.unwrap());
         assert_eq!(pb_iter.next(), it0);
