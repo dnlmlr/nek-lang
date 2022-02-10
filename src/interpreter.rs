@@ -1,8 +1,8 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, rc::Rc};
 use thiserror::Error;
 
 use crate::{
-    ast::{Ast, BinOpType, BlockScope, Expression, If, Statement, UnOpType},
+    ast::{Ast, BinOpType, BlockScope, Expression, FunDecl, If, Statement, UnOpType},
     astoptimizer::{AstOptimizer, SimpleAstOptimizer},
     lexer::lex,
     parser::parse,
@@ -25,6 +25,8 @@ pub enum RuntimeError {
     ArrayOutOfBounds(usize, usize),
     #[error("Division by zero")]
     DivideByZero,
+    #[error("Invalid number of arguments for function {0}. Expected {1}, got {2}")]
+    InvalidNumberOfArgs(String, usize, usize),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -32,6 +34,13 @@ pub enum Value {
     I64(i64),
     String(Sid),
     Array(RefCell<Vec<Value>>),
+    Void,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum BlockExit {
+    Normal,
+    Return(Value),
 }
 
 #[derive(Default)]
@@ -46,6 +55,8 @@ pub struct Interpreter {
 
     // Variable table stores the runtime values of variables
     vartable: Vec<Value>,
+
+    funtable: Vec<FunDecl>,
 
     stringstore: StringStore,
 }
@@ -63,10 +74,11 @@ impl Interpreter {
     }
 
     fn get_var(&self, idx: usize) -> Option<Value> {
-        self.vartable.get(idx).cloned()
+        self.vartable.get(self.vartable.len() - idx - 1).cloned()
     }
 
     fn get_var_mut(&mut self, idx: usize) -> Option<&mut Value> {
+        let idx = self.vartable.len() - idx - 1;
         self.vartable.get_mut(idx)
     }
 
@@ -92,14 +104,30 @@ impl Interpreter {
 
         self.stringstore = ast.stringstore;
 
-        self.run_block(&ast.main)
+        self.run_block(&ast.main)?;
+        Ok(())
     }
 
-    pub fn run_block(&mut self, prog: &BlockScope) -> Result<(), RuntimeError> {
-        let framepointer = self.vartable.len();
+    pub fn run_block(&mut self, prog: &BlockScope) -> Result<BlockExit, RuntimeError> {
+        self.run_block_fp_offset(prog, 0)
+    }
+
+    pub fn run_block_fp_offset(
+        &mut self,
+        prog: &BlockScope,
+        framepointer_offset: usize,
+    ) -> Result<BlockExit, RuntimeError> {
+        let framepointer = self.vartable.len() - framepointer_offset;
 
         for stmt in prog {
             match stmt {
+                Statement::Return(expr) => {
+                    let val = self.resolve_expr(expr)?;
+
+                    self.vartable.truncate(framepointer);
+                    return Ok(BlockExit::Return(val));
+                }
+
                 Statement::Expr(expr) => {
                     self.resolve_expr(expr)?;
                 }
@@ -110,7 +138,13 @@ impl Interpreter {
                 }
 
                 Statement::Block(block) => {
-                    self.run_block(block)?;
+                    match self.run_block(block)? {
+                        BlockExit::Return(val) => {
+                            self.vartable.truncate(framepointer);
+                            return Ok(BlockExit::Return(val));
+                        }
+                        _ => ()
+                    }
                 }
 
                 Statement::Loop(looop) => {
@@ -143,18 +177,29 @@ impl Interpreter {
                     body_true,
                     body_false,
                 }) => {
-                    if matches!(self.resolve_expr(condition)?, Value::I64(0)) {
-                        self.run_block(body_false)?;
+                    let exit = if matches!(self.resolve_expr(condition)?, Value::I64(0)) {
+                        self.run_block(body_false)?
                     } else {
-                        self.run_block(body_true)?;
+                        self.run_block(body_true)?
+                    };
+                    match exit {
+                        BlockExit::Return(val) => {
+                            self.vartable.truncate(framepointer);
+                            return Ok(BlockExit::Return(val));
+                        }
+                        _ => (),
                     }
+                }
+
+                Statement::FunDeclare(fundec) => {
+                    self.funtable.push(fundec.clone());
                 }
             }
         }
 
         self.vartable.truncate(framepointer);
 
-        Ok(())
+        Ok(BlockExit::Normal)
     }
 
     fn resolve_expr(&mut self, expr: &Expression) -> Result<Value, RuntimeError> {
@@ -173,6 +218,29 @@ impl Interpreter {
             Expression::Var(name, idx) => self.resolve_var(*name, *idx)?,
             Expression::ArrayAccess(name, idx, arr_idx) => {
                 self.resolve_array_access(*name, *idx, arr_idx)?
+            }
+
+            Expression::FunCall(fun_name, fun_stackpos, args) => {
+                for arg in args {
+                    let arg = self.resolve_expr(arg)?;
+                    self.vartable.push(arg);
+                }
+
+                // Function existance has been verified in the parser, so unwrap here shouldn't fail
+                let num_args = self.funtable.get(*fun_stackpos).unwrap().argnames.len();
+
+                if num_args != args.len() {
+                    let fun_name = self.stringstore.lookup(*fun_name).cloned().unwrap_or("<unknown>".to_string());
+                    return Err(RuntimeError::InvalidNumberOfArgs(fun_name, num_args, args.len()));
+                }
+
+                match self.run_block_fp_offset(
+                    &Rc::clone(&self.funtable.get(*fun_stackpos).unwrap().body),
+                    num_args,
+                )? {
+                    BlockExit::Normal => Value::Void,
+                    BlockExit::Return(val) => val,
+                }
             }
         };
 
@@ -310,8 +378,12 @@ impl Interpreter {
                 BinOpType::Add => Value::I64(lhs + rhs),
                 BinOpType::Mul => Value::I64(lhs * rhs),
                 BinOpType::Sub => Value::I64(lhs - rhs),
-                BinOpType::Div => Value::I64(lhs.checked_div(rhs).ok_or(RuntimeError::DivideByZero)?),
-                BinOpType::Mod => Value::I64(lhs.checked_rem(rhs).ok_or(RuntimeError::DivideByZero)?),
+                BinOpType::Div => {
+                    Value::I64(lhs.checked_div(rhs).ok_or(RuntimeError::DivideByZero)?)
+                }
+                BinOpType::Mod => {
+                    Value::I64(lhs.checked_rem(rhs).ok_or(RuntimeError::DivideByZero)?)
+                }
                 BinOpType::BOr => Value::I64(lhs | rhs),
                 BinOpType::BAnd => Value::I64(lhs & rhs),
                 BinOpType::BXor => Value::I64(lhs ^ rhs),
@@ -338,7 +410,8 @@ impl Interpreter {
         match val {
             Value::I64(val) => format!("{}", val),
             Value::Array(val) => format!("{:?}", val.borrow()),
-            Value::String(text) => format!("{}", self.stringstore.lookup(*text).unwrap()),
+            Value::String(text) => format!("{}", self.stringstore.lookup(*text).unwrap_or(&"<invalid string>".to_string())),
+            Value::Void => format!("void"),
         }
     }
 }

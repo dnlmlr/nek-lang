@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 use crate::{
-    ast::{Ast, BlockScope, Expression, If, Loop, Statement},
+    ast::{Ast, BlockScope, Expression, FunDecl, If, Loop, Statement},
     stringstore::{Sid, StringStore},
     token::Token,
     util::{PutBackIter, PutBackableExt},
@@ -16,6 +16,10 @@ pub enum ParseErr {
     DeclarationOfNonVar,
     #[error("Use of undefined variable \"{0}\"")]
     UseOfUndeclaredVar(String),
+    #[error("Use of undefined function \"{0}\"")]
+    UseOfUndeclaredFun(String),
+    #[error("Redeclation of function \"{0}\"")]
+    RedeclarationFun(String),
 }
 
 type ResPE<T> = Result<T, ParseErr>;
@@ -39,6 +43,7 @@ struct Parser<T: Iterator<Item = Token>> {
     tokens: PutBackIter<T>,
     string_store: StringStore,
     var_stack: Vec<Sid>,
+    fun_stack: Vec<Sid>,
 }
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -47,10 +52,12 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let tokens = tokens.into_iter().putbackable();
         let string_store = StringStore::new();
         let var_stack = Vec::new();
+        let fun_stack = Vec::new();
         Self {
             tokens,
             string_store,
             var_stack,
+            fun_stack,
         }
     }
 
@@ -62,10 +69,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         })
     }
 
+    fn parse_scoped_block(&mut self) -> ResPE<BlockScope> {
+        self.parse_scoped_block_fp_offset(0)
+    }
+
     /// Parse tokens into an abstract syntax tree. This will continuously parse statements until
     /// encountering end-of-file or a block end '}' .
-    fn parse_scoped_block(&mut self) -> ResPE<BlockScope> {
-        let framepointer = self.var_stack.len();
+    fn parse_scoped_block_fp_offset(&mut self, framepoint_offset: usize) -> ResPE<BlockScope> {
+        let framepointer = self.var_stack.len() - framepoint_offset;
         let mut prog = Vec::new();
 
         loop {
@@ -109,7 +120,79 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Statement::Print(expr)
             }
 
+            T![return] => {
+                self.next();
+                let stmt = Statement::Return(self.parse_expr()?);
+                
+                // After a statement, there must be a semicolon
+                validate_next!(self, T![;], ";");
+
+                stmt
+            }
+
             T![if] => Statement::If(self.parse_if()?),
+
+            T![fun] => {
+                self.next();
+
+                let fun_name = match self.next() {
+                    T![ident(fun_name)] => fun_name,
+                    tok => return Err(ParseErr::UnexpectedToken(tok, "<ident>".to_string())),
+                };
+
+                let fun_name = self.string_store.intern_or_lookup(&fun_name);
+
+                if self.fun_stack.contains(&fun_name) {
+                    return Err(ParseErr::RedeclarationFun(
+                        self.string_store
+                            .lookup(fun_name)
+                            .cloned()
+                            .unwrap_or("<unknown>".to_string()),
+                    ));
+                }
+
+                let fun_stackpos = self.fun_stack.len();
+                self.fun_stack.push(fun_name);
+
+                let mut arg_names = Vec::new();
+
+                validate_next!(self, T!['('], "(");
+
+                while matches!(self.peek(), T![ident(_)]) {
+                    let var_name = match self.next() {
+                        T![ident(var_name)] => var_name,
+                        _ => unreachable!(),
+                    };
+
+                    let var_name = self.string_store.intern_or_lookup(&var_name);
+                    arg_names.push(var_name);
+
+                    // Push the variable onto the varstack
+                    self.var_stack.push(var_name);
+
+                    // If there are more args skip the comma so that the loop will read the argname
+                    if self.peek() == &T![,] {
+                        self.next();
+                    }
+                }
+
+                validate_next!(self, T![')'], ")");
+
+                validate_next!(self, T!['{'], "{");
+
+                // Create the scoped block with a stack offset. This will pop the args that are
+                // added to the stack while parsing args
+                let body = self.parse_scoped_block_fp_offset(arg_names.len())?;
+
+                validate_next!(self, T!['}'], "}");
+
+                Statement::FunDeclare(FunDecl {
+                    name: fun_name,
+                    fun_stackpos,
+                    argnames: arg_names,
+                    body: body.into(),
+                })
+            }
 
             _ => {
                 let first = self.next();
@@ -118,11 +201,12 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                     (T![ident(name)], T![<-]) => {
                         self.next();
 
+                        let rhs = self.parse_expr()?;
+
                         let sid = self.string_store.intern_or_lookup(&name);
                         let sp = self.var_stack.len();
                         self.var_stack.push(sid);
 
-                        let rhs = self.parse_expr()?;
                         Statement::Declaration(sid, sp, rhs)
                     }
                     (first, _) => {
@@ -272,6 +356,31 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Expression::ArrayAccess(sid, stackpos, index.into())
             }
 
+            T![ident(name)] if self.peek() == &T!['('] => {
+                // Skip the opening parenthesis
+                self.next();
+
+                let sid = self.string_store.intern_or_lookup(&name);
+
+                let mut args = Vec::new();
+
+                while !matches!(self.peek(), T![')']) {
+                    let arg = self.parse_expr()?;
+                    args.push(arg);
+
+                    // If there are more args skip the comma so that the loop will read the argname
+                    if self.peek() == &T![,] {
+                        self.next();
+                    }
+                }
+
+                validate_next!(self, T![')'], ")");
+
+                let fun_stackpos = self.get_fun_stackpos(sid)?;
+
+                Expression::FunCall(sid, fun_stackpos, args)
+            }
+
             T![ident(name)] => {
                 let sid = self.string_store.intern_or_lookup(&name);
                 let stackpos = self.get_stackpos(sid)?;
@@ -303,8 +412,22 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             .iter()
             .rev()
             .position(|it| *it == varid)
-            .map(|it| self.var_stack.len() - it - 1)
+            .map(|it| it)
             .ok_or(ParseErr::UseOfUndeclaredVar(
+                self.string_store
+                    .lookup(varid)
+                    .map(String::from)
+                    .unwrap_or("<unknown>".to_string()),
+            ))
+    }
+
+    fn get_fun_stackpos(&self, varid: Sid) -> ResPE<usize> {
+        self.fun_stack
+            .iter()
+            .rev()
+            .position(|it| *it == varid)
+            .map(|it| self.fun_stack.len() - it - 1)
+            .ok_or(ParseErr::UseOfUndeclaredFun(
                 self.string_store
                     .lookup(varid)
                     .map(String::from)

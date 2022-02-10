@@ -70,6 +70,7 @@ impl<'a> Lexer<'a> {
                 ('|', '|') => self.push_tok_consume(T![||]),
 
                 // Single character tokens
+                (',', _) => self.push_tok(T![,]),
                 (';', _) => self.push_tok(T![;]),
                 ('+', _) => self.push_tok(T![+]),
                 ('-', _) => self.push_tok(T![-]),
@@ -199,6 +200,8 @@ impl<'a> Lexer<'a> {
             "print" => T![print],
             "if" => T![if],
             "else" => T![else],
+            "fun" => T![fun],
+            "return" => T![return],
 
             // If it doesn't match a keyword, it is a normal identifier
             _ => T![ident(ident)],

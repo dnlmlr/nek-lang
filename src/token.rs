@@ -1,4 +1,7 @@
-use crate::{ast::{BinOpType, UnOpType}, T};
+use crate::{
+    ast::{BinOpType, UnOpType},
+    T,
+};
 
 /// Language keywords
 #[derive(Debug, PartialEq, Eq)]
@@ -11,6 +14,10 @@ pub enum Keyword {
     If,
     /// Else keyword ("else")
     Else,
+    /// Function declaration keyword ("fun")
+    Fun,
+    /// Return keyword ("return")
+    Return,
 }
 
 /// Literal values
@@ -66,6 +73,9 @@ pub enum Token {
 
     /// Combined tokens consisting of multiple characters
     Combo(Combo),
+
+    /// Comma (",")
+    Comma,
 
     /// Equal Sign ("=")
     Equal,
@@ -199,6 +209,14 @@ macro_rules! T {
         crate::token::Token::Keyword(crate::token::Keyword::Else)
     };
 
+    [fun] => {
+        crate::token::Token::Keyword(crate::token::Keyword::Fun)
+    };
+
+    [return] => {
+        crate::token::Token::Keyword(crate::token::Keyword::Return)
+    };
+
     // Literals
     [i64($($val:tt)*)] => {
         crate::token::Token::Literal(crate::token::Literal::I64($($val)*))
@@ -251,6 +269,10 @@ macro_rules! T {
     };
 
     // Normal Tokens
+    [,] => {
+        crate::token::Token::Comma
+    };
+
     [=] => {
         crate::token::Token::Equal
     };

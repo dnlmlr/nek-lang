@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::stringstore::{StringStore, Sid};
 
 /// Types for binary operators
@@ -86,6 +88,8 @@ pub enum Expression {
     /// Array access with name, stackpos and position
     ArrayAccess(Sid, usize, Box<Expression>),
 
+    FunCall(Sid, usize, Vec<Expression>),
+
     /// Variable
     Var(Sid, usize),
     /// Binary operation. Consists of type, left hand side and right hand side
@@ -115,8 +119,18 @@ pub struct If {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
+pub struct FunDecl {
+    pub name: Sid,
+    pub fun_stackpos: usize,
+    pub argnames: Vec<Sid>,
+    pub body: Rc<BlockScope>,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Statement {
+    Return(Expression),
     Declaration(Sid, usize, Expression),
+    FunDeclare(FunDecl),
     Expr(Expression),
     Block(BlockScope),
     Loop(Loop),
