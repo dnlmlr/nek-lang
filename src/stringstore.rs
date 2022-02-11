@@ -49,3 +49,56 @@ impl StringStore {
     }
 
 }
+
+#[cfg(test)]
+mod tests {
+    use super::StringStore;
+
+    #[test]
+    fn test_stringstore_intern_lookup() {
+        let mut ss = StringStore::new();
+        let s1 = "Hello";
+        let s2 = "World";
+
+        let id1 = ss.intern_or_lookup(s1);
+        assert_eq!(ss.lookup(id1).unwrap().as_str(), s1);
+
+        let id2 = ss.intern_or_lookup(s2);
+        assert_eq!(ss.lookup(id2).unwrap().as_str(), s2);
+        assert_eq!(ss.lookup(id1).unwrap().as_str(), s1);
+    }
+
+    #[test]
+    fn test_stringstore_no_duplicates() {
+        let mut ss = StringStore::new();
+        let s1 = "Hello";
+        let s2 = "World";
+
+        let id1_1 = ss.intern_or_lookup(s1);
+        assert_eq!(ss.lookup(id1_1).unwrap().as_str(), s1);
+
+        let id1_2 = ss.intern_or_lookup(s1);
+        assert_eq!(ss.lookup(id1_2).unwrap().as_str(), s1);
+
+        // Check that the string is the same
+        assert_eq!(id1_1, id1_2);
+
+        // Check that only one string is actually stored
+        assert_eq!(ss.strings.len(), 1);
+        assert_eq!(ss.sids.len(), 1);
+
+
+
+        let id2_1 = ss.intern_or_lookup(s2);
+        assert_eq!(ss.lookup(id2_1).unwrap().as_str(), s2);
+
+        let id2_2 = ss.intern_or_lookup(s2);
+        assert_eq!(ss.lookup(id2_2).unwrap().as_str(), s2);
+
+        // Check that the string is the same
+        assert_eq!(id2_1, id2_2);
+
+        assert_eq!(ss.strings.len(), 2);
+        assert_eq!(ss.sids.len(), 2);
+    }
+}
