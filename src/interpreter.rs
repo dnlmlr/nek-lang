@@ -12,7 +12,7 @@ use crate::{
 
 #[derive(Debug, Error)]
 pub enum RuntimeError {
-    #[error("Invalid array Index: {}", 0.to_string())]
+    #[error("Invalid array Index: {0:?}")]
     InvalidArrayIndex(Value),
 
     #[error("Variable used but not declared: {0}")]
@@ -21,10 +21,10 @@ pub enum RuntimeError {
     #[error("Can't index into non-array variable: {0}")]
     TryingToIndexNonArray(String),
 
-    #[error("Invalid value type for unary operation: {}", 0.to_string())]
+    #[error("Invalid value type for unary operation: {0:?}")]
     UnOpInvalidType(Value),
 
-    #[error("Incompatible binary operations. Operands don't match: {} {}", 0.to_string(), 1.to_string())]
+    #[error("Incompatible binary operations. Operands don't match: {0:?} and {1:?}")]
     BinOpIncompatibleTypes(Value, Value),
 
     #[error("Array access out of bounds: Accessed {0}, size is {1}")]
