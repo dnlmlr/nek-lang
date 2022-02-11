@@ -2,6 +2,8 @@ use std::{env::args, fs, process::exit};
 
 use nek_lang::{interpreter::Interpreter, nice_panic};
 
+/// Cli configuration flags and arguments. This could be done with `clap`, but since only so few
+/// arguments are supported this seems kind of overkill.
 #[derive(Debug, Default)]
 struct CliConfig {
     print_tokens: bool,
@@ -38,6 +40,7 @@ fn main() {
             Ok(code) => code,
             Err(_) => nice_panic!("Error: Could not read file '{}'", file),
         };
+        // Lex, parse and run the program
         interpreter.run_str(&code);
     } else {
         println!("Error: No file given\n");

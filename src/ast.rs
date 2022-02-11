@@ -1,80 +1,82 @@
 use std::rc::Rc;
 
-use crate::stringstore::{StringStore, Sid};
+use crate::stringstore::{Sid, StringStore};
 
-/// Types for binary operators
+/// Types for binary operations
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum BinOpType {
-    /// Addition
+    /// Addition ("+")
     Add,
 
-    /// Subtraction
+    /// Subtraction ("-")
     Sub,
 
-    /// Multiplication
+    /// Multiplication ("*")
     Mul,
 
-    /// Divide
+    /// Division ("/")
     Div,
 
-    /// Modulo
+    /// Modulo / Remainder ("%")
     Mod,
 
-    /// Compare Equal
+    /// Compare Equal ("==")
     EquEqu,
 
-    /// Compare Not Equal
+    /// Compare Not Equal ("!=")
     NotEqu,
 
-    /// Less than
+    /// Compare Less than ("<")
     Less,
 
-    /// Less than or Equal
+    /// Compare Less than or Equal ("<=")
     LessEqu,
 
-    /// Greater than
+    /// Compare Greater than (">")
     Greater,
 
-    /// Greater than or Equal
+    /// Compare Greater than or Equal (">=")
     GreaterEqu,
 
-    /// Bitwise OR (inclusive or)
+    /// Bitwise Or ("|")
     BOr,
 
-    /// Bitwise And
+    /// Bitwise And ("&")
     BAnd,
 
-    /// Bitwise Xor (exclusive or)
+    /// Bitwise Xor / Exclusive Or ("^")
     BXor,
 
-    /// Logical And
+    /// Logical And ("&&")
     LAnd,
 
-    /// Logical Or
+    /// Logical Or ("||")
     LOr,
 
-    /// Shift Left
+    /// Bitwise Shift Left ("<<")
     Shl,
 
-    /// Shift Right
+    /// Bitwise Shift Right (">>")
     Shr,
 
-    /// Assign value to variable
+    /// Assign value to variable ("=")
     Assign,
 }
 
+/// Types for unary operations
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum UnOpType {
-    /// Unary Negate
+    /// Unary Negation ("-")
     Negate,
 
-    /// Bitwise Not
+    /// Bitwise Not / Bitflip ("~")
     BNot,
 
-    /// Logical Not
+    /// Logical Not ("!")
     LNot,
 }
 
+/// Ast Node for possible Expression variants
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Expression {
     /// Integer literal (64-bit)
@@ -82,15 +84,16 @@ pub enum Expression {
     /// String literal
     String(Sid),
 
-    /// Array with size
+    /// Array with size as an expression
     ArrayLiteral(Box<Expression>),
-
-    /// Array access with name, stackpos and position
+    /// Array access with name, stackpos and position as expression
     ArrayAccess(Sid, usize, Box<Expression>),
 
+    /// Function call with name, stackpos and the arguments as a vec of expressions
     FunCall(Sid, usize, Vec<Expression>),
 
-    /// Variable
+    /// Variable with name and the stackpos from behind. This means that stackpos 0 refers to the 
+    /// last variable on the stack and not the first
     Var(Sid, usize),
     /// Binary operation. Consists of type, left hand side and right hand side
     BinOp(BinOpType, Box<Expression>, Box<Expression>),
@@ -98,6 +101,7 @@ pub enum Expression {
     UnOp(UnOpType, Box<Expression>),
 }
 
+/// Ast Node for a loop
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Loop {
     /// The condition that determines if the loop should continue
@@ -108,6 +112,7 @@ pub struct Loop {
     pub body: BlockScope,
 }
 
+/// Ast Node for an if
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct If {
     /// The condition
@@ -118,40 +123,65 @@ pub struct If {
     pub body_false: BlockScope,
 }
 
+/// Ast Node for a function declaration
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct FunDecl {
+    /// The function name as StringID, stored in the stringstore
     pub name: Sid,
+    /// The absolute position on the function stack where the function is stored
     pub fun_stackpos: usize,
+    /// The argument names as StringIDs
     pub argnames: Vec<Sid>,
+    /// The function body
     pub body: Rc<BlockScope>,
 }
 
+/// Ast Node for a variable declaration
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct VarDecl {
+    /// The variable name as StringID, stored in the stringstore
     pub name: Sid,
+    /// The absolute position on the variable stack where the variable is stored
     pub var_stackpos: usize,
+    /// The right hand side that generates the initial value for the variable
     pub rhs: Expression,
 }
 
+/// Ast Node for the possible Statement variants
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Statement {
+    /// Return from a function with the given result value as an expression
     Return(Expression),
+    /// Break out of the current loop
     Break,
+    /// End the current loop iteration early and continue with the next loop iteration
     Continue,
+    /// A variable declaration
     Declaration(VarDecl),
+    /// A function declaration
     FunDeclare(FunDecl),
+    /// A simple expression. This could be a function call or an assignment for example
     Expr(Expression),
+    /// A freestanding block scope
     Block(BlockScope),
+    /// A loop
     Loop(Loop),
+    /// An if
     If(If),
+    /// A print statement that will output the value of the given expression to the terminal
     Print(Expression),
 }
 
+/// A number of statements that form a block of code together
 pub type BlockScope = Vec<Statement>;
 
+/// A full abstract syntax tree
 #[derive(Clone, Default)]
 pub struct Ast {
+    /// The stringstore contains the actual string values which are replaced with StringIDs in the
+    /// Ast. So this is needed to get the actual strings later
     pub stringstore: StringStore,
+    /// The main (top-level) code given as a number of statements
     pub main: BlockScope,
 }
 

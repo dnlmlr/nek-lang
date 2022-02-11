@@ -1,9 +1,14 @@
 use crate::ast::{Ast, BlockScope, Expression, If, Loop, Statement, BinOpType, UnOpType, VarDecl};
 
+/// A trait that allows to optimize an abstract syntax tree
 pub trait AstOptimizer {
+    /// Consume an abstract syntax tree and return an ast that has the same functionality but with
+    /// optional optimizations.
     fn optimize(ast: Ast) -> Ast;
 }
 
+/// A very simple optimizer that applies trivial optimizations like precalculation expressions that 
+/// have only literals as operands
 pub struct SimpleAstOptimizer;
 
 impl AstOptimizer for SimpleAstOptimizer {
