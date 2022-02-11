@@ -33,6 +33,8 @@
   - [Expressions](#expressions-1)
   - [Statements](#statements)
 - [Examples](#examples)
+- [Extras](#extras)
+  - [Visual Studio Code Language Support](#visual-studio-code-language-support)
 
 ## Variables
 The variables are all contained in scopes. Variables defined in an outer scope can be accessed in 
@@ -420,3 +422,10 @@ To run an example via `cargo-run`, use:
 ```
 cargo run --release -- examples/[NAME]
 ```
+
+# Extras
+## Visual Studio Code Language Support
+A VSCode extension that provides simple syntax highlighing for nek is also available on 
+[gitlab](https://code.fbi.h-da.de/advanced-systems-programming-ws21/x4/nek-lang-vscode). Since this 
+is a very small scale project, the extension was not published and instuctions on how to install it 
+can be found in the mentioned repository.
