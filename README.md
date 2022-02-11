@@ -250,6 +250,11 @@ print var_in_inner_scope;
 - Variables from the outer scope are shadowed by parameters with the same name
 - The `return` keyword can be used to return a value from the function and exit it immediately
 - If no return is specified, a `void` value is returned
+- Functions can only be defined at the top-level. So defining a function inside of any other scoped 
+  block (like inside another function, if, loop, ...) is invalid
+- Functions can only be used after definition and there is no forward declaration right now
+- However a function can be called recursively inside of itself
+- Functions can't be redefined, so defining a function with an existing name is invalid
 ```
 fun add_maybe(a, b) {
   if a < 100 {
