@@ -2,18 +2,28 @@
 /// works like panic, but doesn't show the additional information that panic adds. Those can be 
 /// interesting for debugging, but don't look that great when building a release executable for an
 /// end user.
+/// When running tests or running in debug mode, panic is used to ensure the tests working 
+/// correctly.
 #[macro_export]
 macro_rules! nice_panic {
     ($fmt:expr) => {
         {
-            eprintln!($fmt);
-            std::process::exit(1);
+            if cfg!(test) || cfg!(debug_assertions) {
+                panic!($fmt);
+            } else {
+                eprintln!($fmt);
+                std::process::exit(1);
+            }
         }
     };
     ($fmt:expr, $($arg:tt)*) => {
         {
-            eprintln!($fmt, $($arg)*);
-            std::process::exit(1);
+            if cfg!(test) || cfg!(debug_assertions) {
+                panic!($fmt, $($arg)*);
+            } else {
+                eprintln!($fmt, $($arg)*);
+                std::process::exit(1);
+            }
         }
     };
 }
