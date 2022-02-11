@@ -43,7 +43,7 @@ accessed.
 
 ### Declaration
 - Declare and initialize a new variable
-- Declaring a previously declared variable again is currently equivalent to an assignment
+- Declaring a previously declared variable again will shadow the previous variable
 - Declaration is needed before assignment or other usage
 - The variable name is on the left side of the `<-` operator
 - The assigned value is on the right side and can be any expression
@@ -69,7 +69,6 @@ The available variable datatypes are `i64` (64-bit signed integer), `string` (`"
 - Can be created by just writing an integer literal like `546`
 - Inside the number literal `_` can be inserted for visual separation `100_000`
 - The i64 values can be used as expected in calculations, conditions and so on
-- 
 ```
 my_i64 <- 123_456;
 ```
@@ -80,7 +79,7 @@ my_i64 <- 123_456;
 - There is no way to access or change the characters of the string
 - Unicode characters are supported `"Hello 🌎"`
 - Escape characters `\n`, `\r`, `\t`, `\"`, `\\` are supported
-- String can still be assigned to variables, just like i64
+- String can be assigned to variables, just like i64
 ```
 world <- "🌎";
 
@@ -92,12 +91,13 @@ print "\n";
 ### Array
 - Arrays can contain any other datatypes and don't need to have the same type in all cells
 - Arrays can be created by using brackets with the size in between `[size]`
-- Arrays must be assigned to a variable to be used
+- Arrays must be assigned to a variable in order to be used
 - All cells will be initialized with i64 0 values
 - The size can be any expression that results in a positive i64 value
 - The array size can't be changed after creation
 - The arrays data is always allocated on the heap
-- The array cells can be accessed by using the variable name and brackets `my_arr[index]`
+- The array cells can be accessed by using the variable name and specifying the index in brackets 
+  `my_arr[index]`
 - The index can be any expression that results in a positive i64 value in the range of the arrays 
   indices
 - The indices start with 0
@@ -106,13 +106,14 @@ print "\n";
 width <- 5;
 heigt <- 5;
 
-// Initialize array of size 25 with 25x 0
+// Initialize array of size 25, initialized with 25x 0
 my_array = [width * height];
 
 // Modify first value
 my_array[0] = 5;
 
 // Print first value
+// Outputs `5`
 print my_array[0];
 ```
 
@@ -145,7 +146,9 @@ Supported mathematical operations:
 - "Bit flip" (One's complement) `~a`
 
 ### Logical Operators
-The logical operators evaluate the operands as `false` if they are equal to `0` and `true` if they are not equal to `0`
+The logical operators evaluate the operands as `false` if they are equal to `0` and `true` if they are not equal to `0`.
+Note that logical operators like AND / OR do not support short-circuit evaluation. So Both sides of 
+the logical operation will be evaluated, even if it might not be necessary.
 - And `a && b`
 - Or `a || b`
 - Not `!a` (if `a` is equal to `0`, the result is `1`, otherwise the result is `0`)
@@ -160,13 +163,14 @@ The equality and relational operations result in `1` if the condition is evaluat
 - Less or equal than `a <= b`
 
 ## Control-Flow
-For conditions like in if or loops, every non zero value is equal to `true`, and `0` is `false`.
+For conditions like in if or loops, every non-zero value is equal to `true`, and `0` is `false`.
 
 ### Loop
-- The `loop` keyword can be used as an infinite loop, as a while loop or as a while loop with advancement (an expression that is executed after the loop body)
+- The `loop` keyword can be used as an infinite loop, as a while loop or as a while loop with 
+  advancement (an expression that is executed after each loop)
 - If only `loop` is used, directly followed by the body, it is an infinite loop that needs to be 
   terminated by using the `break` keyword
-- The `loop` keyword is followed by the condition (an expression) without needing parentheses
+- The `loop` keyword can be followed by the condition (an expression) without needing parentheses
 - *Optional:* If there is a `;` after the condition, there must be another expression which is used as the advancement
 - The loops body is wrapped in braces (`{ }`) just like in C/C++
 - The `continue` keyword can be used to end the current loop iteration early
@@ -200,11 +204,12 @@ loop k < 10; k = k + 1 {
 ```
 
 ### If / Else
-
 - The language supports `if` and an optional `else`
 - After the `if` keyword must be the deciding condition, parentheses are not needed
-- The block *if-true* block is wrapped in braces (`{ }`)
+- The blocks are wrapped in braces (`{ }`)
 - *Optional:* If there is an `else` after the *if-block*, there must be a following *if-false*, aka. else block
+- NOTE: Logical operators like AND / OR do not support short-circuit evaluation. So Both sides of 
+  the logical operations will be evaluated, even if it might not be necessary
 ```
 a <- 1;
 b <- 2;
@@ -245,13 +250,14 @@ print var_in_inner_scope;
 ### Function definition
 - Functions can be defined by using the `fun` keyword, followed by the function name and the 
   parameters in parentheses. After the parentheses, the body is specified inside a braces block
-- The function parameters are specified by only the names
+- The function parameters are specified by only their names
 - The function body has its own scope
 - Parameters are only accessible inside the body
 - Variables from the outer scope can be accessed and modified if the are defined before the function
-- Variables from the outer scope are shadowed by parameters with the same name
+- Variables from the outer scope are shadowed by parameters or local variables with the same name
 - The `return` keyword can be used to return a value from the function and exit it immediately
-- If no return is specified, a `void` value is returned
+- If no return is specified, a special `void` value is returned. That value can't be used in 
+  calculations or comparisons, but can be stored in a variable (even tho it doesn't make sense)
 - Functions can only be defined at the top-level. So defining a function inside of any other scoped 
   block (like inside another function, if, loop, ...) is invalid
 - Functions can only be used after definition and there is no forward declaration right now
@@ -289,12 +295,15 @@ println(result);
 
 ### Print
 Printing is implemented via the `print` keyword
-- The `print` keyword is followed by an expression, the value of which will be printed to the terminal.
-- Print currently automatically adds a linebreak
+- The `print` keyword is followed by an expression, the value of which will be printed to the terminal
+- To add a line break a string print can be used `print "\n";`
 ```
 a <- 1;
-// Outputs `"1"` to the terminal
+// Outputs `1` to the terminal
 print a;
+
+// Outputs a new-line to the terminal
+print "\n";
 ```
 
 ## Comments
