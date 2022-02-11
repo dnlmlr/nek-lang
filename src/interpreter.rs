@@ -12,7 +12,7 @@ use crate::{
 
 #[derive(Debug, Error)]
 pub enum RuntimeError {
-    #[error("Invalid error Index: {}", 0.to_string())]
+    #[error("Invalid array Index: {}", 0.to_string())]
     InvalidArrayIndex(Value),
 
     #[error("Variable used but not declared: {0}")]
