@@ -20,6 +20,8 @@ pub enum ParseErr {
     UseOfUndeclaredFun(String),
     #[error("Redeclation of function \"{0}\"")]
     RedeclarationFun(String),
+    #[error("Function not declared at top level \"{0}\"")]
+    FunctionOnNonTopLevel(String),
 }
 
 type ResPE<T> = Result<T, ParseErr>;
@@ -44,6 +46,7 @@ struct Parser<T: Iterator<Item = Token>> {
     string_store: StringStore,
     var_stack: Vec<Sid>,
     fun_stack: Vec<Sid>,
+    nesting_level: usize,
 }
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -58,6 +61,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             string_store,
             var_stack,
             fun_stack,
+            nesting_level: 0,
         }
     }
 
@@ -76,6 +80,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     /// Parse tokens into an abstract syntax tree. This will continuously parse statements until
     /// encountering end-of-file or a block end '}' .
     fn parse_scoped_block_fp_offset(&mut self, framepoint_offset: usize) -> ResPE<BlockScope> {
+        self.nesting_level += 1;
         let framepointer = self.var_stack.len() - framepoint_offset;
         let mut prog = Vec::new();
 
@@ -100,6 +105,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
 
         self.var_stack.truncate(framepointer);
+        self.nesting_level -= 1;
 
         Ok(prog)
     }
@@ -149,12 +155,17 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             T![if] => Statement::If(self.parse_if()?),
 
             T![fun] => {
+
                 self.next();
 
                 let fun_name = match self.next() {
                     T![ident(fun_name)] => fun_name,
                     tok => return Err(ParseErr::UnexpectedToken(tok, "<ident>".to_string())),
                 };
+                
+                if self.nesting_level > 1 {
+                    return Err(ParseErr::FunctionOnNonTopLevel(fun_name));
+                }
 
                 let fun_name = self.string_store.intern_or_lookup(&fun_name);
 
