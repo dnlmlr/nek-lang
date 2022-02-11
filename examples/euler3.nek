@@ -18,10 +18,10 @@ loop number > 1 {
 
     div = div + 1;
     if div * div > number {
-        if number > 1 & number > result {
+        if number > 1 && number > result {
             result = number;
         }
-        number = 0;
+        break;
     }
 
 }

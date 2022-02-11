@@ -1,19 +1,4 @@
-width <- 10;
-height <- 10;
-
-field <- [width*height];
-field2 <- [width*height];
-
-field[1] = 1;
-field[12] = 1;
-field[20] = 1;
-field[21] = 1;
-field[22] = 1;
-
-
-runs <- 0;
-loop runs < 20; runs = runs + 1 {
-    // Print the field
+fun print_field(field, width, height) {
     y <- 0;
     loop y < height; y = y+1 {
         x <- 0;
@@ -27,92 +12,123 @@ loop runs < 20; runs = runs + 1 {
         print "\n";
     }
     print "\n";
+}
 
-    // Update from field into field2
-    y <- 0;
-    loop y < height; y = y+1 {
-        x <- 0;
-        loop x < width; x = x+1 {
-
-            neighbours <- 0;
-
-            if y > 0 {
-                if x > 0 {
-                    // Top left
-                    if field[(y-1)*width + (x-1)] {
-                        neighbours = neighbours + 1;
-                    }
-                }
-
-                // Top
-                if field[(y-1)*width + x] {
-                    neighbours = neighbours + 1;
-                }
-
-                if x < width-1 {
-                    // Top right
-                    if field[(y-1)*width + (x+1)] {
-                        neighbours = neighbours + 1;
-                    }
-                }
+fun count_neighbours(field, x, y, width, height) {
+    neighbours <- 0;
+    if y > 0 {
+        if x > 0 {
+            if field[(y-1)*width + (x-1)] {
+                // Top left
+                neighbours = neighbours + 1;
             }
+        }
 
-            if x > 0 {
-                // Left
-                if field[y*width + (x-1)] {
-                    neighbours = neighbours + 1;
-                }
+        if field[(y-1)*width + x] {
+        // Top
+            neighbours = neighbours + 1;
+        }
+
+        if x < width-1 {
+            if field[(y-1)*width + (x+1)] {
+            // Top right
+                neighbours = neighbours + 1;
             }
-
-            if x < width-1 {
-                // Right
-                if field[y*width + (x+1)] {
-                    neighbours = neighbours + 1;
-                }
-            }
-
-            
-            if y < height-1 {
-                if x > 0 {
-                    // Bottom left
-                    if field[(y+1)*width + (x-1)] {
-                        neighbours = neighbours + 1;
-                    }
-                }
-
-                // Bottom
-                if field[(y+1)*width + x] {
-                    neighbours = neighbours + 1;
-                }
-
-                if x < width-1 {
-                    // Bottom right
-                    if field[(y+1)*width + (x+1)] {
-                        neighbours = neighbours + 1;
-                    }
-                }
-            }
-
-
-            if neighbours < 2 || neighbours > 3 {
-                field2[y*width + x] = 0;
-            } else {
-                if neighbours == 3 {
-                    field2[y*width + x] = 1;
-                } else {
-                    field2[y*width + x] = field[y*width + x];
-                }
-            }
-            
         }
     }
 
-    // Transfer from field2 to field
-    y <- 0;
-    loop y < height; y = y+1 {
-        x <- 0;
-        loop x < width; x = x+1 {
-            field[y*width + x] = field2[y*width + x];
+    if x > 0 {
+        if field[y*width + (x-1)] {
+        // Left
+            neighbours = neighbours + 1;
         }
+    }
+
+    if x < width-1 {
+        if field[y*width + (x+1)] {
+        // Right
+            neighbours = neighbours + 1;
+        }
+    }
+
+    
+    if y < height-1 {
+        if x > 0 {
+            if field[(y+1)*width + (x-1)] {
+            // Bottom left
+                neighbours = neighbours + 1;
+            }
+        }
+
+        if field[(y+1)*width + x] {
+        // Bottom
+            neighbours = neighbours + 1;
+        }
+
+        if x < width-1 {
+            if field[(y+1)*width + (x+1)] {
+            // Bottom right
+                neighbours = neighbours + 1;
+            }
+        }
+    }
+    return neighbours;
+}
+
+fun copy(from, to, len) {
+    i <- 0;
+    loop i < len; i = i + 1 {
+        to[i] = from[i];
     }
 }
+
+// Set the width and height of the field
+width <- 10;
+height <- 10;
+
+// Create the main and temporary field
+field <- [width*height];
+field2 <- [width*height];
+
+// Preset the main field with a glider
+field[1] = 1;
+field[12] = 1;
+field[20] = 1;
+field[21] = 1;
+field[22] = 1;
+
+fun run_gol(num_rounds) {
+    runs <- 0;
+    loop runs < num_rounds; runs = runs + 1 {
+        // Print the field
+        print_field(field, width, height);
+
+        // Calculate next stage from field and store into field2
+        y <- 0;
+        loop y < height; y = y+1 {
+            x <- 0;
+            loop x < width; x = x+1 {
+
+                // Get the neighbours of the current cell
+                neighbours <- count_neighbours(field, x, y, width, height);
+
+                // Set the new cell according to the neighbour count
+                if neighbours < 2 || neighbours > 3 {
+                    field2[y*width + x] = 0;
+                } else {
+                    if neighbours == 3 {
+                        field2[y*width + x] = 1;
+                    } else {
+                        field2[y*width + x] = field[y*width + x];
+                    }
+                }
+                
+            }
+        }
+
+        // Transfer from field2 to field
+        copy(field2, field, width*height);
+    }
+}
+
+run_gol(32);

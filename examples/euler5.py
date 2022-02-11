@@ -3,14 +3,13 @@
 # 
 # Correct Answer: 232_792_560
 
-num = 20
+def gcd(x, y):
+    while y:
+        x, y = y, x % y
+    return x
 
-while True:
-    for i in range(20, 2, -1):
-        if num % i != 0:
-            break
-    else:
-        break
-    num = num + 20
+result = 1
+for i in range(1, 21):
+    result *= i // gcd(i, result)
 
-print(num)
+print(result)

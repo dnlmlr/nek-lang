@@ -4,19 +4,19 @@
 # 
 # Correct Answer: 906609
 
+def reverse(n):
+    rev = 0
+    while n:
+        rev = rev * 10 + n % 10
+        n //= 10
+    return rev
 
 res = 0
 
-for i in range(100, 999):
-    for k in range(100, 999):
-
+for i in range(100, 1_000):
+    for k in range(i, 1_000):
         num = i * k
-        tmp = num
-
-        num_rev = 0
-        while tmp != 0:
-            num_rev = num_rev*10 + tmp % 10
-            tmp = tmp // 10
+        num_rev = reverse(num)
         
         if num == num_rev and num > res:
             res = num
